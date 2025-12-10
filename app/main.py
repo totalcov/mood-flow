@@ -23,6 +23,3 @@ async def root():
         "docs": "Документация доступна по адресу /docs"
     }
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
