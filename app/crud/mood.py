@@ -43,3 +43,27 @@ def delete_mood_entry(db: Session, mood_id: int) -> bool:
     db.delete(db_mood)
     db.commit()
     return True
+
+def get_mood_statistics(db: Session, start_date: date, end_date: date) -> dict:
+    """
+    Получить статистику настроений за период
+    """
+    entries = db.query(MoodEntry).filter(
+        MoodEntry.date.between(start_date, end_date)
+    ).all()
+    
+    if not entries:
+        return {"average_score": 0, "total_entries": 0, "mood_types": {}}
+    
+    total_score = sum(entry.mood_score for entry in entries)
+    average_score = total_score / len(entries)
+    
+    mood_types = {}
+    for entry in entries:
+        mood_types[entry.mood_type] = mood_types.get(entry.mood_type, 0) + 1
+    
+    return {
+        "average_score": round(average_score, 2),
+        "total_entries": len(entries),
+        "mood_types": mood_types
+    }
