@@ -1,15 +1,16 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text
-from sqlalchemy.sql import func
-from app.database import Base
+# app/models/mood.py - ИСПРАВЛЕННАЯ ВЕРСИЯ
+from sqlalchemy import Column, Integer, String, Date, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
+
+Base = declarative_base()
 
 class MoodEntry(Base):
     __tablename__ = "mood_entries"
     
     id = Column(Integer, primary_key=True, index=True)
-    date = Column(DateTime, default=func.now(), nullable=False)
-    score = Column(Integer, nullable=False)  # 1-5
-    note = Column(Text, nullable=True)  # Краткое описание дня
-    created_at = Column(DateTime, default=func.now())
-    
-    def __repr__(self):
-        return f"<MoodEntry(id={self.id}, score={self.score}, date={self.date})>"
+    mood_type = Column(String, nullable=False)        # Было: отсутствует
+    mood_score = Column(Integer, nullable=False)      # Было: score
+    notes = Column(String(500), nullable=True)        # Было: note
+    date = Column(Date, default=datetime.now().date)
+    created_at = Column(DateTime, default=datetime.now)
