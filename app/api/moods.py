@@ -39,3 +39,18 @@ def update_mood(mood_id: int, mood_update: MoodUpdate, db: Session = Depends(get
 def delete_mood(mood_id: int, db: Session = Depends(get_db)):
     if not crud_mood.delete_mood_entry(db=db, mood_id=mood_id):
         raise HTTPException(404, detail="Not found")
+    
+# В app/api/moods.py добавить:
+@router.get("/statistics/", response_model=dict)
+def get_statistics(
+    start_date: date = Query(..., description="Начальная дата (YYYY-MM-DD)"),
+    end_date: date = Query(..., description="Конечная дата (YYYY-MM-DD)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Получить статистику настроений за период
+    
+    - **start_date**: Начало периода
+    - **end_date**: Конец периода
+    """
+    return crud_mood.get_mood_statistics(db, start_date, end_date)
