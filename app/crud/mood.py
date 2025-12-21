@@ -53,7 +53,12 @@ def get_mood_statistics(db: Session, start_date: date, end_date: date) -> dict:
     ).all()
     
     if not entries:
-        return {"average_score": 0, "total_entries": 0, "mood_types": {}}
+        return {
+            "average_score": 0, 
+            "total_entries": 0, 
+            "mood_types": {},
+            "entries_data": []  # Добавляем для фронтенда
+        }
     
     total_score = sum(entry.mood_score for entry in entries)
     average_score = total_score / len(entries)
@@ -62,8 +67,20 @@ def get_mood_statistics(db: Session, start_date: date, end_date: date) -> dict:
     for entry in entries:
         mood_types[entry.mood_type] = mood_types.get(entry.mood_type, 0) + 1
     
+    # Подготовка данных для фронтенда
+    entries_data = [
+        {
+            "id": entry.id,
+            "mood_type": entry.mood_type,
+            "mood_score": entry.mood_score,
+            "date": entry.date.isoformat() if entry.date else None
+        }
+        for entry in entries
+    ]
+    
     return {
         "average_score": round(average_score, 2),
         "total_entries": len(entries),
-        "mood_types": mood_types
+        "mood_types": mood_types,
+        "entries_data": entries_data  # Отправляем на фронтенд
     }
