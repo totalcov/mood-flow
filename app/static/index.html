@@ -15,52 +15,116 @@
         </header>
 
         <main>
-            <section class="add-mood-section">
-                <h2><i class="fas fa-plus-circle"></i> Добавить запись о настроении</h2>
-                <form id="moodForm">
-                    <div class="form-group">
-                        <label for="mood_type"><i class="fas fa-smile"></i> Тип настроения:</label>
-                        <input type="text" id="mood_type" name="mood_type" required 
-                               placeholder="Например: радостное, грустное, спокойное"
-                               maxlength="50">
-                        <div class="hint">Любое описание до 50 символов</div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="mood_score"><i class="fas fa-star"></i> Оценка (1-5):</label>
-                        <div class="score-selector">
-                            <button type="button" class="score-btn" data-value="1">1</button>
-                            <button type="button" class="score-btn" data-value="2">2</button>
-                            <button type="button" class="score-btn active" data-value="3">3</button>
-                            <button type="button" class="score-btn" data-value="4">4</button>
-                            <button type="button" class="score-btn" data-value="5">5</button>
+            <!-- ОСНОВНОЙ КОНТЕЙНЕР: ФОРМА + КАЛЕНДАРЬ -->
+            <div class="main-dashboard">
+                <!-- Левая часть: Форма добавления -->
+                <section class="add-mood-section">
+                    <h2><i class="fas fa-plus-circle"></i> Добавить запись о настроении</h2>
+                    <form id="moodForm">
+                        <div class="form-group">
+                            <label for="mood_type"><i class="fas fa-smile"></i> Тип настроения:</label>
+                            <input type="text" id="mood_type" name="mood_type" required 
+                                   placeholder="Например: радостное, грустное"
+                                   maxlength="50">
+                            <div class="hint">Любое описание до 50 символов</div>
                         </div>
-                        <input type="hidden" id="mood_score" name="mood_score" value="3">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="notes"><i class="fas fa-sticky-note"></i> Заметки (необязательно):</label>
-                        <textarea id="notes" name="notes" rows="3" 
-                                  placeholder="Опишите, что повлияло на ваше настроение, как вы себя чувствуете..."
-                                  maxlength="500"></textarea>
-                        <div class="char-count"><span id="charCount">0</span>/500</div>
-                    </div>
-                    
-                    <div class="form-buttons">
+                        
+                        <div class="form-group">
+                            <label for="mood_score"><i class="fas fa-star"></i> Оценка (1-5):</label>
+                            <div class="score-selector">
+                                <button type="button" class="score-btn" data-value="1">1</button>
+                                <button type="button" class="score-btn" data-value="2">2</button>
+                                <button type="button" class="score-btn active" data-value="3">3</button>
+                                <button type="button" class="score-btn" data-value="4">4</button>
+                                <button type="button" class="score-btn" data-value="5">5</button>
+                            </div>
+                            <input type="hidden" id="mood_score" name="mood_score" value="3">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="notes"><i class="fas fa-sticky-note"></i> Заметки (необязательно):</label>
+                            <textarea id="notes" name="notes" rows="3" 
+                                      placeholder="Что повлияло на ваше настроение..."
+                                      maxlength="500"></textarea>
+                            <div class="char-count"><span id="charCount">0</span>/500</div>
+                        </div>
+                        
                         <button type="submit" class="btn-submit">
                             <i class="fas fa-paper-plane"></i> Сохранить настроение
                         </button>
-                        <button type="button" id="showStatsBtn" class="btn-stats">
-                            <i class="fas fa-chart-bar"></i> Статистика
-                        </button>
+                    </form>
+                    <div id="message" class="message"></div>
+                </section>
+
+                <!-- Правая часть: Компактный календарь -->
+                <section class="compact-calendar-section">
+                    <div class="calendar-header">
+                        <h3><i class="fas fa-calendar-alt"></i> Календарь настроений</h3>
+                        <div class="calendar-controls">
+                            <button id="prevMonthBtn" class="btn-month-compact" title="Предыдущий месяц">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="currentMonth" class="current-month-compact">Декабрь 2023</span>
+                            <button id="nextMonthBtn" class="btn-month-compact" title="Следующий месяц">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
                     </div>
-                </form>
-                <div id="message" class="message"></div>
-            </section>
+                    
+                    <!-- Компактный календарь -->
+                    <div class="calendar-container-compact">
+                        <div id="calendarLoading" class="calendar-loading-compact">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                        <div id="moodCalendar" class="mood-calendar-compact">
+                            <!-- Календарь будет сгенерирован через JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Мини-легенда -->
+                    <div class="legend-compact">
+                        <div class="legend-row">
+                            <div class="legend-item-compact" title="5 - Отлично">
+                                <div class="color-box-mini" style="background-color: #5d5fef;"></div>
+                                <span>5</span>
+                            </div>
+                            <div class="legend-item-compact" title="4 - Хорошо">
+                                <div class="color-box-mini" style="background-color: #4fd1c5;"></div>
+                                <span>4</span>
+                            </div>
+                            <div class="legend-item-compact" title="3 - Нормально">
+                                <div class="color-box-mini" style="background-color: #68d391;"></div>
+                                <span>3</span>
+                            </div>
+                            <div class="legend-item-compact" title="2 - Плохо">
+                                <div class="color-box-mini" style="background-color: #fbd38d;"></div>
+                                <span>2</span>
+                            </div>
+                            <div class="legend-item-compact" title="1 - Очень плохо">
+                                <div class="color-box-mini" style="background-color: #fc8181;"></div>
+                                <span>1</span>
+                            </div>
+                            <div class="legend-item-compact" title="Нет данных">
+                                <div class="color-box-mini" style="background-color: #e2e8f0;"></div>
+                                <span>∅</span>
+                            </div>
+                        </div>
+                        <div class="legend-hint">Наведите на день для деталей</div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Тултип для отображения деталей -->
+            <div id="dayTooltip" class="day-tooltip" style="display: none;"></div>
 
             <!-- Секция фильтров -->
             <section class="filters-section">
-                <h3><i class="fas fa-filter"></i> Фильтры</h3>
+                <div class="filters-header">
+                    <h3><i class="fas fa-filter"></i> Фильтры и статистика</h3>
+                    <button type="button" id="showStatsBtn" class="btn-stats">
+                        <i class="fas fa-chart-bar"></i> Статистика
+                    </button>
+                </div>
                 <div class="filters">
                     <div class="filter-group">
                         <label for="filterDate"><i class="far fa-calendar"></i> Дата:</label>

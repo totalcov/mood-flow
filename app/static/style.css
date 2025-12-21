@@ -15,7 +15,7 @@ body {
 }
 
 .container {
-    max-width: 1000px;
+    max-width: 1200px;
     margin: 0 auto;
     background-color: white;
     border-radius: 20px;
@@ -48,15 +48,41 @@ header h1 {
     font-weight: 300;
 }
 
-/* Секции */
-section {
+/* ============================== */
+/* ОСНОВНОЙ ДЭШБОРД: ФОРМА + КАЛЕНДАРЬ */
+/* ============================== */
+
+.main-dashboard {
+    display: flex;
+    gap: 30px;
     margin-bottom: 30px;
-    padding: 25px;
+    align-items: flex-start;
+}
+
+/* Левая часть: Форма добавления */
+.add-mood-section {
+    flex: 2;
     background: #f9f9f9;
     border-radius: 15px;
+    padding: 25px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
+/* Правая часть: Компактный календарь */
+.compact-calendar-section {
+    flex: 1;
+    min-width: 320px;
+    max-width: 380px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 20px;
+}
+
+/* Заголовки секций */
 h2, h3 {
     color: #444;
     margin-bottom: 20px;
@@ -71,7 +97,179 @@ h3 {
     margin-bottom: 15px;
 }
 
-/* Форма */
+/* Заголовок календаря */
+.calendar-header {
+    margin-bottom: 15px;
+}
+
+.calendar-header h3 {
+    color: #4a5568;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Управление календарем */
+.calendar-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.current-month-compact {
+    flex: 1;
+    text-align: center;
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 0.95rem;
+}
+
+.btn-month-compact {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    color: #4a5568;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-month-compact:hover {
+    background: #edf2f7;
+    border-color: #cbd5e0;
+    transform: translateY(-1px);
+}
+
+/* Компактный календарь */
+.calendar-container-compact {
+    position: relative;
+    min-height: 180px;
+    margin-bottom: 15px;
+}
+
+.calendar-loading-compact {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #a0aec0;
+    font-size: 0.9rem;
+}
+
+.mood-calendar-compact {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    font-size: 0.8rem;
+}
+
+/* Ячейки дней в компактном календаре */
+.day-cell-compact {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.day-cell-compact:hover {
+    transform: scale(1.1);
+    border-color: #4a5568 !important;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.day-cell-compact.empty {
+    background: transparent;
+    cursor: default;
+    color: #cbd5e0;
+    border: 1px solid transparent;
+}
+
+.day-cell-compact.empty:hover {
+    transform: none;
+    border-color: transparent !important;
+    box-shadow: none;
+}
+
+/* Выделение сегодняшнего дня */
+.day-cell-compact.today {
+    border: 2px solid #4a5568 !important;
+    box-shadow: 0 0 0 1px white;
+    font-weight: bold;
+}
+
+/* Индикатор данных в углу */
+.has-data-dot {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Мини-легенда */
+.legend-compact {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.legend-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.legend-item-compact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: default;
+    font-size: 0.7rem;
+}
+
+.legend-item-compact span {
+    color: #718096;
+    font-weight: 500;
+}
+
+.color-box-mini {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.legend-hint {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #a0aec0;
+    font-style: italic;
+    margin-top: 8px;
+}
+
+/* ============================== */
+/* ФОРМА ДОБАВЛЕНИЯ НАСТРОЕНИЯ */
+/* ============================== */
+
 .form-group {
     margin-bottom: 25px;
 }
@@ -153,12 +351,71 @@ textarea {
     box-shadow: 0 4px 10px rgba(93, 95, 239, 0.3);
 }
 
-/* Кнопки */
+/* Кнопки формы */
+.btn-submit {
+    width: 100%;
+    background: linear-gradient(to right, #5d5fef, #6a6bf5);
+    color: white;
+    border: none;
+    padding: 14px 25px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-submit:hover {
+    background: linear-gradient(to right, #4a4cdd, #5d5fef);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(93, 95, 239, 0.4);
+}
+
+/* ============================== */
+/* ФИЛЬТРЫ И СТАТИСТИКА */
+/* ============================== */
+
+.filters-section {
+    background-color: #edf2f7;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.filters-header h3 {
+    margin: 0;
+}
+
+.filters {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+/* Кнопки фильтров */
 button {
     cursor: pointer;
     border: none;
     border-radius: 10px;
-    padding: 14px 25px;
+    padding: 12px 20px;
     font-size: 1rem;
     font-weight: 600;
     transition: all 0.3s;
@@ -168,47 +425,14 @@ button {
     gap: 10px;
 }
 
-.form-buttons {
-    display: flex;
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.btn-submit {
-    background: linear-gradient(to right, #5d5fef, #6a6bf5);
-    color: white;
-    flex: 2;
-}
-
-.btn-submit:hover {
-    background: linear-gradient(to right, #4a4cdd, #5d5fef);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(93, 95, 239, 0.4);
-}
-
 .btn-stats {
     background-color: #48bb78;
     color: white;
-    flex: 1;
 }
 
 .btn-stats:hover {
     background-color: #38a169;
     transform: translateY(-2px);
-}
-
-.btn-refresh {
-    background-color: #4299e1;
-    color: white;
-    padding: 10px 15px;
-    border-radius: 50%;
-    width: 45px;
-    height: 45px;
-}
-
-.btn-refresh:hover {
-    background-color: #3182ce;
-    transform: rotate(90deg);
 }
 
 .btn-filter {
@@ -229,40 +453,17 @@ button {
     background-color: #cbd5e0;
 }
 
-.btn-close {
-    background-color: #fc8181;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-}
+/* ============================== */
+/* СЕКЦИЯ СТАТИСТИКИ */
+/* ============================== */
 
-.btn-close:hover {
-    background-color: #f56565;
-}
-
-/* Секция фильтров */
-.filters-section {
-    background-color: #edf2f7;
-}
-
-.filters {
-    display: flex;
-    gap: 15px;
-    align-items: flex-end;
-    flex-wrap: wrap;
-}
-
-.filter-group {
-    flex: 1;
-    min-width: 150px;
-}
-
-/* Секция статистики */
 .stats-section {
     background-color: #e6fffa;
     border: 2px solid #81e6d9;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 .stats-controls {
@@ -299,206 +500,6 @@ button {
     color: #2d3748;
 }
 
-.mood-types-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.mood-type-badge {
-    background-color: #c6f6d5;
-    color: #22543d;
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-}
-
-/* Сообщения */
-.message {
-    padding: 15px;
-    border-radius: 10px;
-    margin-top: 20px;
-    text-align: center;
-    font-weight: 500;
-}
-
-.message.success {
-    background-color: #e7f7ef;
-    color: #2a8356;
-    border: 1px solid #b8e6cf;
-}
-
-.message.error {
-    background-color: #fde8e8;
-    color: #c53030;
-    border: 1px solid #fbb6b6;
-}
-
-.message.info {
-    background-color: #e1effe;
-    color: #1c64f2;
-    border: 1px solid #c3ddfd;
-}
-
-/* Загрузка */
-.loading {
-    text-align: center;
-    padding: 40px;
-    color: #666;
-    font-size: 1.1rem;
-}
-
-.fa-spin {
-    margin-right: 10px;
-}
-
-/* Список настроений */
-.mood-list {
-    display: grid;
-    gap: 20px;
-}
-
-.mood-card {
-    background-color: white;
-    border-radius: 15px;
-    padding: 25px;
-    border-left: 6px solid;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    transition: transform 0.3s;
-}
-
-.mood-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-
-/* Цвета для карточек в зависимости от оценки */
-.mood-card[data-score="1"] { border-left-color: #fc8181; }
-.mood-card[data-score="2"] { border-left-color: #fbd38d; }
-.mood-card[data-score="3"] { border-left-color: #68d391; }
-.mood-card[data-score="4"] { border-left-color: #4fd1c5; }
-.mood-card[data-score="5"] { border-left-color: #5d5fef; }
-
-.mood-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.mood-type {
-    font-weight: 700;
-    font-size: 1.3rem;
-    color: #2d3748;
-}
-
-.mood-score {
-    background-color: #f0f0f0;
-    color: #4a5568;
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-weight: bold;
-    font-size: 1.1rem;
-}
-
-.mood-date {
-    color: #888;
-    font-size: 0.9rem;
-    margin-top: 5px;
-}
-
-.mood-notes {
-    margin: 15px 0;
-    color: #555;
-    line-height: 1.5;
-    padding: 15px;
-    background-color: #f7fafc;
-    border-radius: 8px;
-    border-left: 4px solid #cbd5e0;
-}
-
-/* Состояние "нет данных" */
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #888;
-}
-
-.empty-state i {
-    font-size: 4rem;
-    margin-bottom: 20px;
-    color: #ccc;
-}
-
-.empty-state h3 {
-    color: #666;
-    margin-bottom: 10px;
-}
-
-.empty-state p {
-    max-width: 400px;
-    margin: 0 auto;
-}
-
-/* Футер */
-footer {
-    text-align: center;
-    margin-top: 40px;
-    padding-top: 20px;
-    border-top: 1px solid #f0f0f0;
-    color: #888;
-    font-size: 0.9rem;
-}
-
-footer code {
-    background-color: #f7fafc;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: monospace;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-    .container {
-        padding: 20px;
-        border-radius: 15px;
-    }
-    
-    header h1 {
-        font-size: 2.2rem;
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    section {
-        padding: 20px;
-    }
-    
-    .filters, .form-buttons, .stats-controls {
-        flex-direction: column;
-    }
-    
-    .filter-group {
-        min-width: 100%;
-    }
-    
-    .mood-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    
-    .score-selector {
-        flex-wrap: wrap;
-    }
-    
-    .score-btn {
-        flex: 0 0 calc(20% - 8px);
-    }
-}
-
-/* Стили для статистики */
 .stat-value.large {
     font-size: 2.5rem;
     font-weight: bold;
@@ -565,33 +566,23 @@ footer code {
     margin-top: 3px;
 }
 
-/* Иконки в карточках */
-.mood-icon {
-    font-size: 1.5rem;
-    margin-right: 10px;
-    vertical-align: middle;
+/* Распределение по типам */
+.mood-types-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
 }
 
-/* Бейджи типов с иконками */
 .mood-type-badge {
     background-color: #c6f6d5;
     color: #22543d;
-    padding: 8px 12px;
+    padding: 5px 10px;
     border-radius: 20px;
     font-size: 0.9rem;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: transform 0.2s;
-}
-
-.mood-type-badge:hover {
-    transform: scale(1.05);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-}
-
-.type-icon {
-    font-size: 1.2rem;
+    gap: 5px;
 }
 
 .type-name {
@@ -607,4 +598,377 @@ footer code {
     border-radius: 10px;
     font-weight: bold;
     font-size: 0.85rem;
+}
+
+/* ============================== */
+/* ОСНОВНОЙ СПИСОК НАСТРОЕНИЙ */
+/* ============================== */
+
+.mood-list-section {
+    background-color: #f9f9f9;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-refresh {
+    background-color: #4299e1;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-refresh:hover {
+    background-color: #3182ce;
+    transform: rotate(90deg);
+}
+
+.btn-close {
+    background-color: #fc8181;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-close:hover {
+    background-color: #f56565;
+}
+
+/* Загрузка */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.fa-spin {
+    margin-right: 10px;
+}
+
+/* Список настроений */
+.mood-list {
+    display: grid;
+    gap: 20px;
+}
+
+.mood-card {
+    background-color: white;
+    border-radius: 15px;
+    padding: 25px;
+    border-left: 6px solid;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s;
+}
+
+.mood-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Цвета для карточек в зависимости от оценки */
+.mood-card[data-score="1"] { border-left-color: #fc8181; }
+.mood-card[data-score="2"] { border-left-color: #fbd38d; }
+.mood-card[data-score="3"] { border-left-color: #68d391; }
+.mood-card[data-score="4"] { border-left-color: #4fd1c5; }
+.mood-card[data-score="5"] { border-left-color: #5d5fef; }
+
+.mood-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.mood-type {
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: #2d3748;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mood-icon {
+    font-size: 1.5rem;
+}
+
+.mood-score {
+    background-color: #f0f0f0;
+    color: #4a5568;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.mood-date {
+    color: #888;
+    font-size: 0.9rem;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.mood-notes {
+    margin: 15px 0;
+    color: #555;
+    line-height: 1.5;
+    padding: 15px;
+    background-color: #f7fafc;
+    border-radius: 8px;
+    border-left: 4px solid #cbd5e0;
+}
+
+/* Состояние "нет данных" */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #888;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    color: #ccc;
+}
+
+.empty-state h3 {
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* ============================== */
+/* ТУЛТИП ДЛЯ КАЛЕНДАРЯ */
+/* ============================== */
+
+.day-tooltip {
+    position: fixed;
+    background: #2d3748;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    max-width: 200px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(10px);
+}
+
+.day-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #2d3748;
+}
+
+.tooltip-date {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #fff;
+    font-size: 0.85rem;
+}
+
+.tooltip-mood {
+    color: #cbd5e0;
+    font-size: 0.75rem;
+    margin-top: 4px;
+}
+
+/* ============================== */
+/* СООБЩЕНИЯ */
+/* ============================== */
+
+.message {
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 20px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.message.success {
+    background-color: #e7f7ef;
+    color: #2a8356;
+    border: 1px solid #b8e6cf;
+}
+
+.message.error {
+    background-color: #fde8e8;
+    color: #c53030;
+    border: 1px solid #fbb6b6;
+}
+
+.message.info {
+    background-color: #e1effe;
+    color: #1c64f2;
+    border: 1px solid #c3ddfd;
+}
+
+/* ============================== */
+/* ФУТЕР */
+/* ============================== */
+
+footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #f0f0f0;
+    color: #888;
+    font-size: 0.9rem;
+}
+
+footer code {
+    background-color: #f7fafc;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+/* ============================== */
+/* АДАПТИВНОСТЬ */
+/* ============================== */
+
+@media (max-width: 1024px) {
+    .main-dashboard {
+        flex-direction: column;
+    }
+    
+    .compact-calendar-section {
+        max-width: 100%;
+        position: static;
+        min-width: auto;
+    }
+    
+    .mood-calendar-compact {
+        gap: 4px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+        border-radius: 15px;
+    }
+    
+    header h1 {
+        font-size: 2.2rem;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .main-dashboard {
+        gap: 20px;
+    }
+    
+    .add-mood-section,
+    .compact-calendar-section,
+    .filters-section,
+    .stats-section,
+    .mood-list-section {
+        padding: 20px;
+    }
+    
+    .mood-calendar-compact {
+        font-size: 0.7rem;
+        gap: 2px;
+    }
+    
+    .legend-row {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .legend-item-compact {
+        flex: 0 0 auto;
+    }
+    
+    .filters {
+        flex-direction: column;
+    }
+    
+    .filter-group {
+        min-width: 100%;
+    }
+    
+    .stats-controls {
+        flex-direction: column;
+    }
+    
+    .mood-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .score-selector {
+        flex-wrap: wrap;
+    }
+    
+    .score-btn {
+        flex: 0 0 calc(20% - 8px);
+    }
+}
+
+@media (max-width: 480px) {
+    .mood-calendar-compact {
+        grid-template-columns: repeat(7, 1fr);
+    }
+    
+    .day-cell-compact {
+        font-size: 0.65rem;
+    }
+    
+    .color-box-mini {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .mood-card {
+        padding: 20px;
+    }
+    
+    .mood-type {
+        font-size: 1.1rem;
+    }
+    
+    .mood-score {
+        font-size: 1rem;
+        padding: 4px 12px;
+    }
 }

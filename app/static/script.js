@@ -24,10 +24,35 @@ const filterTypeInput = document.getElementById('filterType');
 const applyFiltersBtn = document.getElementById('applyFilters');
 const clearFiltersBtn = document.getElementById('clearFilters');
 
+// ДОСКА НАСТРОЕНИЙ - DOM элементы
+const moodBoardSection = document.getElementById('moodBoardSection');
+const currentMonthElement = document.getElementById('currentMonth');
+const prevMonthBtn = document.getElementById('prevMonthBtn');
+const nextMonthBtn = document.getElementById('nextMonthBtn');
+const moodCalendar = document.getElementById('moodCalendar');
+const calendarLoading = document.getElementById('calendarLoading');
+const dayTooltip = document.getElementById('dayTooltip');
+
 // Текущие фильтры
 let currentFilters = {
     date_filter: null,
     mood_type: null
+};
+
+// Текущий месяц и год для доски
+let currentBoardDate = {
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1
+};
+
+// Объект для перевода типов настроения на русский
+const moodTypeLabels = {
+    'happy': 'Радостное',
+    'sad': 'Грустное',
+    'energetic': 'Энергичное',
+    'calm': 'Спокойное',
+    'anxious': 'Тревожное',
+    'neutral': 'Нейтральное'
 };
 
 // Инициализация
@@ -44,14 +69,17 @@ function initApp() {
     startDateInput.value = formatDate(weekAgo);
     endDateInput.value = formatDate(today);
     
-    // Загружаем записи
-    loadMoods();
-    
     // Инициализируем выбор оценки
     initScoreSelector();
     
     // Инициализируем счетчик символов
     initCharCounter();
+    
+    // Загружаем записи
+    loadMoods();
+    
+    // Инициализируем доску настроений
+    initMoodBoard();
     
     // Устанавливаем обработчики событий
     setupEventListeners();
@@ -179,10 +207,13 @@ function createMoodCard(mood) {
     
     const simpleDate = mood.date ? new Date(mood.date).toLocaleDateString('ru-RU') : 'Нет даты';
     
+    // Получаем иконку
+    const moodIcon = getMoodIcon(mood.mood_score);
+    
     card.innerHTML = `
         <div class="mood-header">
             <div class="mood-type">
-                <i class="fas fa-smile"></i> ${mood.mood_type}
+                <span class="mood-icon">${moodIcon}</span> ${mood.mood_type}
             </div>
             <div class="mood-score">
                 Оценка: <strong>${mood.mood_score}/5</strong>
@@ -202,6 +233,18 @@ function createMoodCard(mood) {
     `;
     
     return card;
+}
+
+// Функция для получения иконки по оценке
+function getMoodIcon(score) {
+    switch(parseInt(score)) {
+        case 1: return '😢';
+        case 2: return '😔';
+        case 3: return '😐';
+        case 4: return '🙂';
+        case 5: return '😊';
+        default: return '😐';
+    }
 }
 
 // Обработка отправки формы
@@ -259,10 +302,11 @@ async function handleFormSubmit(e) {
         });
         charCount.textContent = '0';
         
-        // Загружаем обновленный список
+        // Загружаем обновленный список и календарь
         setTimeout(() => {
             hideMessage();
             loadMoods();
+            loadMoodCalendar(); // Обновляем календарь
         }, 1500);
         
     } catch (error) {
@@ -309,100 +353,6 @@ async function loadStatistics() {
         showMessage(`Ошибка: ${error.message}`, 'error');
     }
 }
-
-// Отображение статистики
-function renderStatistics(stats) {
-    statsContent.innerHTML = `
-        <div class="stat-item">
-            <div class="stat-label">Средняя оценка настроения:</div>
-            <div class="stat-value">${stats.average_score || 0}</div>
-        </div>
-        
-        <div class="stat-item">
-            <div class="stat-label">Всего записей за период:</div>
-            <div class="stat-value">${stats.total_entries || 0}</div>
-        </div>
-        
-        <div class="stat-item">
-            <div class="stat-label">Распределение по типам:</div>
-            ${stats.mood_types && Object.keys(stats.mood_types).length > 0 ? `
-                <div class="mood-types-list">
-                    ${Object.entries(stats.mood_types).map(([type, count]) => `
-                        <div class="mood-type-badge">
-                            ${type}: ${count}
-                        </div>
-                    `).join('')}
-                </div>
-            ` : '<div class="stat-value">Нет данных</div>'}
-        </div>
-    `;
-}
-
-// Применение фильтров
-function applyFilters() {
-    currentFilters = {
-        date_filter: filterDateInput.value || null,
-        mood_type: filterTypeInput.value.trim() || null
-    };
-    
-    loadMoods(currentFilters);
-    
-    if (currentFilters.date_filter || currentFilters.mood_type) {
-        showMessage('Фильтры применены', 'info');
-        setTimeout(hideMessage, 2000);
-    }
-}
-
-// Сброс фильтров
-function clearFilters() {
-    filterDateInput.value = '';
-    filterTypeInput.value = '';
-    currentFilters = {
-        date_filter: null,
-        mood_type: null
-    };
-    
-    loadMoods();
-    showMessage('Фильтры сброшены', 'info');
-    setTimeout(hideMessage, 2000);
-}
-
-// Вспомогательные функции
-function formatDate(date) {
-    return date.toISOString().split('T')[0];
-}
-
-function showLoading(show) {
-    loadingElement.style.display = show ? 'block' : 'none';
-}
-
-function showEmptyState(show) {
-    emptyState.style.display = show ? 'block' : 'none';
-    moodList.style.display = show ? 'none' : 'grid';
-}
-
-function showMessage(text, type = 'info') {
-    messageElement.textContent = text;
-    messageElement.className = `message ${type}`;
-    messageElement.style.display = 'block';
-}
-
-function hideMessage() {
-    messageElement.style.display = 'none';
-}
-
-// Экспортируем функции для отладки (опционально)
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        loadMoods,
-        createMoodCard,
-        handleFormSubmit,
-        loadStatistics
-    };
-}
-
-
-
 
 // Отображение статистики
 function renderStatistics(stats) {
@@ -465,7 +415,6 @@ function renderStatistics(stats) {
                 <div class="mood-types-list">
                     ${Object.entries(stats.mood_types).map(([type, count]) => `
                         <div class="mood-type-badge" title="${type}">
-                            <span class="type-icon">${getMoodIcon(type)}</span>
                             <span class="type-name">${type.length > 15 ? type.substring(0, 15) + '...' : type}</span>
                             <span class="type-count">${count}</span>
                         </div>
@@ -476,112 +425,363 @@ function renderStatistics(stats) {
     `;
 }
 
-// Функция для определения иконки по типу настроения
-function getMoodIcon(moodType) {
-    const type = moodType.toLowerCase();
+// Применение фильтров
+function applyFilters() {
+    currentFilters = {
+        date_filter: filterDateInput.value || null,
+        mood_type: filterTypeInput.value.trim() || null
+    };
     
-    if (type.includes('счастлив') || type.includes('радост') || type.includes('happy') || type.includes('excited')) {
-        return '😊';
-    } else if (type.includes('грустн') || type.includes('печаль') || type.includes('sad') || type.includes('depressed')) {
-        return '😔';
-    } else if (type.includes('зл') || type.includes('angry') || type.includes('mad') || type.includes('annoyed')) {
-        return '😠';
-    } else if (type.includes('спокойн') || type.includes('calm') || type.includes('peaceful') || type.includes('relaxed')) {
-        return '😌';
-    } else if (type.includes('устал') || type.includes('tired') || type.includes('exhausted')) {
-        return '😴';
-    } else if (type.includes('взволнован') || type.includes('excited') || type.includes('energetic')) {
-        return '😃';
-    } else if (type.includes('тревож') || type.includes('anxious') || type.includes('worried')) {
-        return '😰';
-    } else if (type.includes('нейтраль') || type.includes('neutral') || type.includes('normal')) {
-        return '😐';
-    } else if (type.includes('любов') || type.includes('love') || type.includes('loving')) {
-        return '😍';
-    } else if (type.includes('удивл') || type.includes('surprised') || type.includes('shocked')) {
-        return '😲';
-    }
+    loadMoods(currentFilters);
     
-    // Дефолтные иконки по оценке (если тип не распознан)
-    return '😐';
-}
-
-// Обновляем функцию getMoodIcon для карточек (добавляем в существующую)
-function getMoodIconByTypeAndScore(moodType, score) {
-    const type = moodType.toLowerCase();
-    
-    // Сначала пытаемся определить по типу
-    if (type.includes('счастлив') || type.includes('радост') || type.includes('happy') || type.includes('excited')) {
-        return '😊';
-    } else if (type.includes('грустн') || type.includes('печаль') || type.includes('sad') || type.includes('depressed')) {
-        return '😔';
-    } else if (type.includes('зл') || type.includes('angry') || type.includes('mad') || type.includes('annoyed')) {
-        return '😠';
-    } else if (type.includes('спокойн') || type.includes('calm') || type.includes('peaceful') || type.includes('relaxed')) {
-        return '😌';
-    } else if (type.includes('устал') || type.includes('tired') || type.includes('exhausted')) {
-        return '😴';
-    } else if (type.includes('взволнован') || type.includes('excited') || type.includes('energetic')) {
-        return '😃';
-    } else if (type.includes('тревож') || type.includes('anxious') || type.includes('worried')) {
-        return '😰';
-    } else if (type.includes('нейтраль') || type.includes('neutral') || type.includes('normal')) {
-        return '😐';
-    }
-    
-    // Если тип не распознан, используем оценку
-    switch(parseInt(score)) {
-        case 1: return '😢';
-        case 2: return '😔';
-        case 3: return '😐';
-        case 4: return '🙂';
-        case 5: return '😊';
-        default: return '😐';
+    if (currentFilters.date_filter || currentFilters.mood_type) {
+        showMessage('Фильтры применены', 'info');
+        setTimeout(hideMessage, 2000);
     }
 }
 
-// Обновляем функцию createMoodCard:
-function createMoodCard(mood) {
-    const card = document.createElement('div');
-    card.className = 'mood-card';
-    card.setAttribute('data-score', mood.mood_score);
+// Сброс фильтров
+function clearFilters() {
+    filterDateInput.value = '';
+    filterTypeInput.value = '';
+    currentFilters = {
+        date_filter: null,
+        mood_type: null
+    };
     
-    // Преобразуем дату в читаемый формат
-    const date = new Date(mood.created_at);
+    loadMoods();
+    showMessage('Фильтры сброшены', 'info');
+    setTimeout(hideMessage, 2000);
+}
+
+// ===========================================
+// ДОСКА НАСТРОЕНИЙ - КОМПАКТНАЯ ВЕРСИЯ
+// ===========================================
+
+// Инициализация доски
+function initMoodBoard() {
+    console.log('Инициализация доски настроений...');
+    loadMoodCalendar();
+    setupBoardEventListeners();
+}
+
+// Настройка обработчиков для доски
+function setupBoardEventListeners() {
+    prevMonthBtn.addEventListener('click', () => changeMonth(-1));
+    nextMonthBtn.addEventListener('click', () => changeMonth(1));
+    
+    // Закрытие тултипа при клике вне
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.day-cell-compact')) {
+            hideDayTooltip();
+        }
+    });
+}
+
+// Загрузка календаря
+async function loadMoodCalendar() {
+    showCalendarLoading(true);
+    console.log('Загрузка календаря за', currentBoardDate.year, currentBoardDate.month);
+    
+    try {
+        const url = new URL(`${API_BASE_URL}/moods/calendar/`);
+        url.searchParams.append('year', currentBoardDate.year);
+        url.searchParams.append('month', currentBoardDate.month);
+        
+        console.log('Запрос к:', url.toString());
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}. Проверьте бэкенд.`);
+        }
+        
+        const calendarData = await response.json();
+        console.log('Данные календаря получены:', calendarData);
+        
+        renderMoodCalendar(calendarData);
+        
+    } catch (error) {
+        console.error('Ошибка при загрузке календаря:', error);
+        
+        // Показываем сообщение об ошибке
+        moodCalendar.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #e53e3e;">
+                <i class="fas fa-exclamation-triangle"></i><br>
+                Ошибка загрузки календаря<br>
+                <small style="color: #a0aec0;">${error.message}</small>
+            </div>
+        `;
+        
+        showCalendarLoading(false);
+    }
+}
+
+// Отображение компактного календаря
+function renderMoodCalendar(calendarData) {
+    // Обновляем заголовок
+    currentMonthElement.textContent = `${calendarData.month_name} ${calendarData.year}`;
+    
+    // Очищаем календарь
+    moodCalendar.innerHTML = '';
+    
+    // Дни недели
+    const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    dayNames.forEach(dayName => {
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'day-cell-compact empty';
+        dayHeader.textContent = dayName;
+        dayHeader.style.color = '#718096';
+        dayHeader.style.fontWeight = '600';
+        dayHeader.style.cursor = 'default';
+        moodCalendar.appendChild(dayHeader);
+    });
+    
+    // Определяем день недели первого дня месяца
+    const firstDay = new Date(calendarData.year, calendarData.month - 1, 1);
+    let firstDayOfWeek = firstDay.getDay(); // 0=Вс, 1=Пн, ..., 6=Сб
+    
+    // Преобразуем к нашему формату (0=Пн, 6=Вс)
+    firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    
+    // Добавляем пустые ячейки для выравнивания
+    for (let i = 0; i < firstDayOfWeek; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'day-cell-compact empty';
+        emptyCell.style.visibility = 'hidden';
+        moodCalendar.appendChild(emptyCell);
+    }
+    
+    // Добавляем ячейки для каждого дня месяца
+    const daysInMonth = calendarData.total_days;
+    const today = new Date();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${calendarData.year}-${String(calendarData.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayData = calendarData.calendar[dateStr] || {
+            score: 0,
+            mood_type: null,
+            color: '#e2e8f0',
+            has_data: false,
+            notes: ''
+        };
+        
+        const dayCell = createCompactDayCell(day, dayData, dateStr, today);
+        moodCalendar.appendChild(dayCell);
+    }
+    
+    showCalendarLoading(false);
+}
+
+// Создание компактной ячейки дня
+function createCompactDayCell(dayNumber, dayData, dateStr, today) {
+    const dayCell = document.createElement('div');
+    dayCell.className = 'day-cell-compact';
+    dayCell.style.backgroundColor = dayData.color;
+    dayCell.textContent = dayNumber;
+    dayCell.dataset.date = dateStr;
+    dayCell.dataset.score = dayData.score;
+    dayCell.dataset.mood = dayData.mood_type || '';
+    dayCell.dataset.notes = dayData.notes || '';
+    
+    // Выделяем сегодняшний день
+    const cellDate = new Date(dateStr);
+    const isToday = cellDate.getDate() === today.getDate() && 
+                   cellDate.getMonth() === today.getMonth() && 
+                   cellDate.getFullYear() === today.getFullYear();
+    
+    if (isToday) {
+        dayCell.classList.add('today');
+    }
+    
+    // Индикатор данных (точка в углу)
+    if (dayData.has_data) {
+        const dot = document.createElement('div');
+        dot.className = 'has-data-dot';
+        dayCell.appendChild(dot);
+    }
+    
+    // Тултип при наведении
+    dayCell.addEventListener('mouseenter', (e) => {
+        showDayTooltip(e, dayNumber, dayData, dateStr);
+    });
+    
+    dayCell.addEventListener('mouseleave', () => {
+        hideDayTooltip();
+    });
+    
+    // Клик для фильтрации
+    dayCell.addEventListener('click', () => {
+        if (dayData.has_data) {
+            filterByDate(dateStr);
+        } else {
+            // Если нет данных, предлагаем добавить
+            showMessage(`Выбрана дата: ${formatDisplayDate(dateStr)}. Заполните форму.`, 'info');
+        }
+    });
+    
+    return dayCell;
+}
+
+// Функция для форматирования даты
+function formatDisplayDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ru-RU', {
+        day: 'numeric',
+        month: 'long'
+    });
+}
+
+// Показать тултип
+function showDayTooltip(event, dayNumber, dayData, dateStr) {
+    const date = new Date(dateStr);
     const formattedDate = date.toLocaleDateString('ru-RU', {
         day: 'numeric',
         month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        year: 'numeric'
     });
     
-    const simpleDate = mood.date ? new Date(mood.date).toLocaleDateString('ru-RU') : 'Нет даты';
+    let tooltipHTML = `<div class="tooltip-date">${formattedDate}</div>`;
     
-    // Получаем правильную иконку
-    const moodIcon = getMoodIconByTypeAndScore(mood.mood_type, mood.mood_score);
-    
-    card.innerHTML = `
-        <div class="mood-header">
-            <div class="mood-type">
-                <span class="mood-icon">${moodIcon}</span> ${mood.mood_type}
-            </div>
-            <div class="mood-score">
-                Оценка: <strong>${mood.mood_score}/5</strong>
-            </div>
-        </div>
+    if (dayData.has_data) {
+        tooltipHTML += `
+            <div><strong>${dayData.mood_type || 'Не указано'}</strong></div>
+            <div>Оценка: <strong>${dayData.score}/5</strong></div>
+        `;
         
-        <div class="mood-date">
-            <i class="far fa-calendar"></i> ${simpleDate} 
-            <i class="far fa-clock" style="margin-left: 15px;"></i> ${formattedDate}
-        </div>
-        
-        ${mood.notes ? `
-            <div class="mood-notes">
-                <i class="fas fa-quote-left"></i> ${mood.notes}
-            </div>
-        ` : ''}
-    `;
+        if (dayData.notes) {
+            const shortNotes = dayData.notes.length > 60 
+                ? dayData.notes.substring(0, 60) + '...' 
+                : dayData.notes;
+            tooltipHTML += `<div class="tooltip-mood">"${shortNotes}"</div>`;
+        }
+    } else {
+        tooltipHTML += '<div><em>Нет записи о настроении</em></div>';
+    }
     
-    return card;
+    dayTooltip.innerHTML = tooltipHTML;
+    dayTooltip.style.display = 'block';
+    
+    // Позиционируем тултип
+    const rect = event.target.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    dayTooltip.style.left = `${rect.left + window.scrollX}px`;
+    dayTooltip.style.top = `${rect.top + scrollTop - dayTooltip.offsetHeight - 10}px`;
+    
+    // Плавное появление
+    setTimeout(() => {
+        dayTooltip.style.opacity = '1';
+        dayTooltip.style.transform = 'translateY(0)';
+    }, 10);
 }
+
+// Скрыть тултип
+function hideDayTooltip() {
+    dayTooltip.style.opacity = '0';
+    dayTooltip.style.transform = 'translateY(10px)';
+    
+    setTimeout(() => {
+        dayTooltip.style.display = 'none';
+    }, 200);
+}
+
+// Изменение месяца
+function changeMonth(delta) {
+    let newMonth = currentBoardDate.month + delta;
+    let newYear = currentBoardDate.year;
+    
+    if (newMonth > 12) {
+        newMonth = 1;
+        newYear++;
+    } else if (newMonth < 1) {
+        newMonth = 12;
+        newYear--;
+    }
+    
+    currentBoardDate.month = newMonth;
+    currentBoardDate.year = newYear;
+    
+    loadMoodCalendar();
+}
+
+// Показать/скрыть загрузку календаря
+function showCalendarLoading(show) {
+    if (calendarLoading) {
+        calendarLoading.style.display = show ? 'flex' : 'none';
+    }
+    if (moodCalendar) {
+        moodCalendar.style.opacity = show ? '0.5' : '1';
+    }
+}
+
+// Фильтрация по дате
+function filterByDate(dateStr) {
+    filterDateInput.value = dateStr;
+    applyFilters();
+    
+    // Прокручиваем к списку
+    setTimeout(() => {
+        document.querySelector('.mood-list-section').scrollIntoView({
+            behavior: 'smooth'
+        });
+    }, 300);
+}
+
+// ===========================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ===========================================
+
+function formatDate(date) {
+    return date.toISOString().split('T')[0];
+}
+
+function showLoading(show) {
+    if (loadingElement) {
+        loadingElement.style.display = show ? 'block' : 'none';
+    }
+}
+
+function showEmptyState(show) {
+    if (emptyState && moodList) {
+        emptyState.style.display = show ? 'block' : 'none';
+        moodList.style.display = show ? 'none' : 'grid';
+    }
+}
+
+function showMessage(text, type = 'info') {
+    if (messageElement) {
+        messageElement.textContent = text;
+        messageElement.className = `message ${type}`;
+        messageElement.style.display = 'block';
+    }
+}
+
+function hideMessage() {
+    if (messageElement) {
+        messageElement.style.display = 'none';
+    }
+}
+
+// Тестовая функция для проверки
+function testAllAPIs() {
+    console.log('=== ТЕСТИРОВАНИЕ API ===');
+    console.log('API Base URL:', API_BASE_URL);
+    console.log('Moods API URL:', MOODS_API_URL);
+    console.log('Calendar API URL:', `${API_BASE_URL}/moods/calendar/`);
+    
+    // Тест календаря
+    fetch(`${API_BASE_URL}/moods/calendar/`)
+        .then(response => {
+            console.log('Calendar API Status:', response.status);
+            return response.json();
+        })
+        .then(data => console.log('Calendar API Response:', data))
+        .catch(error => console.error('Calendar API Error:', error));
+}
+
+// Запускаем тест при загрузке
+window.addEventListener('load', () => {
+    console.log('=== MOOD FLOW ЗАГРУЖЕН ===');
+    testAllAPIs();
+});
