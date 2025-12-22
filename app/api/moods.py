@@ -54,3 +54,21 @@ def get_statistics(
     - **end_date**: Конец периода
     """
     return crud_mood.get_mood_statistics(db, start_date, end_date)
+
+
+
+# Добавим новый эндпоинт после статистики
+
+@router.get("/calendar/", response_model=dict)
+def get_mood_calendar(
+    year: int = Query(None, description="Год (например, 2023)"),
+    month: int = Query(None, description="Месяц (1-12)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Получить данные для календаря настроений (доски)
+    
+    Возвращает структуру для визуализации Heatmap.
+    Каждый день содержит оценку, тип настроения и цвет.
+    """
+    return crud_mood.get_mood_calendar_data(db, year, month)

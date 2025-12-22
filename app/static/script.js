@@ -33,6 +33,21 @@ const moodCalendar = document.getElementById('moodCalendar');
 const calendarLoading = document.getElementById('calendarLoading');
 const dayTooltip = document.getElementById('dayTooltip');
 
+
+const MOOD_COLORS = {
+    1: "#ef4444",  // ярко-красный
+    2: "#f97316",  // оранжевый
+    3: "#eab308",  // желтый/рыжий
+    4: "#62f28b", 
+    5: "#048509",   // темно-зеленый
+    default: "#e2e8f0" // серый для нет данных
+};
+
+// Функция для получения цвета по оценке
+function getMoodColor(score) {
+    return MOOD_COLORS[score] || MOOD_COLORS.default;
+}
+
 // Текущие фильтры
 let currentFilters = {
     date_filter: null,
@@ -190,10 +205,15 @@ function renderMoods(moods) {
 }
 
 // Создание карточки настроения
+// Создание карточки настроения
 function createMoodCard(mood) {
     const card = document.createElement('div');
     card.className = 'mood-card';
     card.setAttribute('data-score', mood.mood_score);
+    
+    // Устанавливаем цвет границы в зависимости от оценки
+    const borderColor = getMoodColor(mood.mood_score);
+    card.style.borderLeftColor = borderColor;
     
     // Преобразуем дату в читаемый формат
     const date = new Date(mood.created_at);
@@ -215,7 +235,7 @@ function createMoodCard(mood) {
             <div class="mood-type">
                 <span class="mood-icon">${moodIcon}</span> ${mood.mood_type}
             </div>
-            <div class="mood-score">
+            <div class="mood-score" style="color: ${borderColor};">
                 Оценка: <strong>${mood.mood_score}/5</strong>
             </div>
         </div>
@@ -574,15 +594,26 @@ function renderMoodCalendar(calendarData) {
 }
 
 // Создание компактной ячейки дня
+// Создание компактной ячейки дня
+// Создание компактной ячейки дня (УПРОЩЕННАЯ ВЕРСИЯ)
 function createCompactDayCell(dayNumber, dayData, dateStr, today) {
     const dayCell = document.createElement('div');
     dayCell.className = 'day-cell-compact';
-    dayCell.style.backgroundColor = dayData.color;
+    
+    // Используем среднюю оценку для цвета
+    const roundedScore = dayData.has_data ? Math.round(dayData.average_score) : 0;
+    dayCell.style.backgroundColor = getMoodColor(roundedScore);
     dayCell.textContent = dayNumber;
-    dayCell.dataset.date = dateStr;
-    dayCell.dataset.score = dayData.score;
-    dayCell.dataset.mood = dayData.mood_type || '';
-    dayCell.dataset.notes = dayData.notes || '';
+    
+    // Сохраняем ВСЕ данные дня как JSON строку (проще всего)
+    dayCell.dataset.dayInfo = JSON.stringify({
+        date: dateStr,
+        has_data: dayData.has_data,
+        average_score: dayData.average_score || 0,
+        entries_count: dayData.entries_count || 0,
+        mood_types: dayData.mood_types || [],
+        entries: dayData.entries || []
+    });
     
     // Выделяем сегодняшний день
     const cellDate = new Date(dateStr);
@@ -595,33 +626,82 @@ function createCompactDayCell(dayNumber, dayData, dateStr, today) {
     }
     
     // Индикатор данных (точка в углу)
-    if (dayData.has_data) {
+    if (dayData.has_data && dayData.entries_count > 0) {
         const dot = document.createElement('div');
         dot.className = 'has-data-dot';
         dayCell.appendChild(dot);
+        
+        // Если больше одной записи, показываем количество
+        if (dayData.entries_count > 1) {
+            const countBadge = document.createElement('div');
+            countBadge.className = 'day-count-badge';
+            countBadge.textContent = dayData.entries_count;
+            countBadge.title = `${dayData.entries_count} записей`;
+            dayCell.appendChild(countBadge);
+        }
     }
     
-    // Тултип при наведении
-    dayCell.addEventListener('mouseenter', (e) => {
-        showDayTooltip(e, dayNumber, dayData, dateStr);
-    });
-    
-    dayCell.addEventListener('mouseleave', () => {
-        hideDayTooltip();
-    });
+    // НАЗНАЧАЕМ ПРОСТЫЕ ОБРАБОТЧИКИ (без сложной логики)
+    dayCell.addEventListener('mouseenter', handleDayCellHover);
+    dayCell.addEventListener('mouseleave', handleDayCellLeave);
     
     // Клик для фильтрации
     dayCell.addEventListener('click', () => {
-        if (dayData.has_data) {
+        const data = JSON.parse(dayCell.dataset.dayInfo);
+        if (data.has_data) {
             filterByDate(dateStr);
         } else {
-            // Если нет данных, предлагаем добавить
             showMessage(`Выбрана дата: ${formatDisplayDate(dateStr)}. Заполните форму.`, 'info');
         }
     });
     
     return dayCell;
 }
+
+// Таймеры для управления тултипом
+let tooltipShowTimer = null;
+let tooltipHideTimer = null;
+let currentTooltipDay = null;
+
+// Обработчик наведения на день
+function handleDayCellHover(event) {
+    const dayCell = event.currentTarget;
+    currentTooltipDay = dayCell;
+    
+    // Очищаем таймер скрытия
+    if (tooltipHideTimer) {
+        clearTimeout(tooltipHideTimer);
+        tooltipHideTimer = null;
+    }
+    
+    // Показываем тултип через 100ms (не сразу)
+    tooltipShowTimer = setTimeout(() => {
+        if (currentTooltipDay === dayCell) {
+            showDayTooltip(event, dayCell);
+        }
+    }, 100);
+}
+
+// Обработчик ухода мыши с дня
+function handleDayCellLeave() {
+    const dayCell = this;
+    
+    // Очищаем таймер показа
+    if (tooltipShowTimer) {
+        clearTimeout(tooltipShowTimer);
+        tooltipShowTimer = null;
+    }
+    
+    // Скрываем тултип через 200ms
+    tooltipHideTimer = setTimeout(() => {
+        if (currentTooltipDay === dayCell) {
+            hideDayTooltip();
+            currentTooltipDay = null;
+        }
+    }, 200);
+}
+
+
 
 // Функция для форматирования даты
 function formatDisplayDate(dateStr) {
@@ -633,46 +713,163 @@ function formatDisplayDate(dateStr) {
 }
 
 // Показать тултип
-function showDayTooltip(event, dayNumber, dayData, dateStr) {
-    const date = new Date(dateStr);
-    const formattedDate = date.toLocaleDateString('ru-RU', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
-    
-    let tooltipHTML = `<div class="tooltip-date">${formattedDate}</div>`;
-    
-    if (dayData.has_data) {
-        tooltipHTML += `
-            <div><strong>${dayData.mood_type || 'Не указано'}</strong></div>
-            <div>Оценка: <strong>${dayData.score}/5</strong></div>
-        `;
+// Показать тултип с улучшенной информацией
+// Показать тултип (УПРОЩЕННАЯ ВЕРСИЯ)
+// Показать тултип с правильным позиционированием
+function showDayTooltip(event, dayCell) {
+    try {
+        const dayInfo = JSON.parse(dayCell.dataset.dayInfo);
+        const date = new Date(dayInfo.date);
+        const formattedDate = date.toLocaleDateString('ru-RU', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
         
-        if (dayData.notes) {
-            const shortNotes = dayData.notes.length > 60 
-                ? dayData.notes.substring(0, 60) + '...' 
-                : dayData.notes;
-            tooltipHTML += `<div class="tooltip-mood">"${shortNotes}"</div>`;
+        let tooltipHTML = `<div class="tooltip-date">${formattedDate}</div>`;
+        
+        if (dayInfo.has_data && dayInfo.entries_count > 0) {
+            // Средняя оценка и количество записей
+            tooltipHTML += `
+                <div style="margin: 8px 0;">
+                    <strong>${dayInfo.average_score.toFixed(1)}/5</strong> 
+                    <span style="color: #a0aec0; font-size: 0.9em;">
+                        (${dayInfo.entries_count} ${getRecordsWord(dayInfo.entries_count)})
+                    </span>
+                </div>
+            `;
+            
+            // Распределение оценок
+            if (dayInfo.entries && dayInfo.entries.length > 0) {
+                const scoreCounts = {};
+                dayInfo.entries.forEach(entry => {
+                    scoreCounts[entry.score] = (scoreCounts[entry.score] || 0) + 1;
+                });
+                
+                tooltipHTML += `<div style="margin-bottom: 8px; font-size: 0.9em;">Оценки: `;
+                
+                // Сортируем от 5 до 1
+                [5, 4, 3, 2, 1].forEach(score => {
+                    if (scoreCounts[score]) {
+                        const color = getMoodColor(score);
+                        tooltipHTML += `
+                            <span style="display: inline-block; margin: 0 2px; padding: 1px 4px; 
+                                  background: ${color}; color: white; border-radius: 3px;">
+                                ${score}×${scoreCounts[score]}
+                            </span>
+                        `;
+                    }
+                });
+                
+                tooltipHTML += `</div>`;
+            }
+            
+            // Типы настроений (первые 3)
+            if (dayInfo.mood_types && dayInfo.mood_types.length > 0) {
+                const typesToShow = dayInfo.mood_types.slice(0, 3);
+                const typesStr = typesToShow.join(', ');
+                tooltipHTML += `
+                    <div style="font-size: 0.85em; color: #718096; margin-top: 6px;">
+                        <i class="fas fa-tag" style="margin-right: 4px;"></i>
+                        ${typesStr}
+                        ${dayInfo.mood_types.length > 3 ? '...' : ''}
+                    </div>
+                `;
+            }
+        } else {
+            tooltipHTML += '<div style="color: #a0aec0;"><em>Нет записей</em></div>';
         }
-    } else {
-        tooltipHTML += '<div><em>Нет записи о настроении</em></div>';
+        
+        dayTooltip.innerHTML = tooltipHTML;
+        dayTooltip.style.display = 'block';
+        
+        // ВАЖНО: Принудительно обновляем размеры перед позиционированием
+        dayTooltip.style.visibility = 'hidden';
+        dayTooltip.style.display = 'block';
+        
+        // Ждем следующего кадра для расчета размеров
+        setTimeout(() => {
+            positionTooltipCorrectly(dayCell);
+        }, 0);
+        
+    } catch (error) {
+        console.error('Ошибка при показе тултипа:', error);
+    }
+}
+
+// Правильное позиционирование тултипа
+function positionTooltipCorrectly(dayCell) {
+    // Получаем координаты ячейки дня относительно документа
+    const cellRect = dayCell.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    // Координаты центра ячейки
+    const cellCenterX = cellRect.left + scrollLeft + (cellRect.width / 2);
+    const cellTop = cellRect.top + scrollTop;
+    
+    // Размеры тултипа
+    const tooltipWidth = dayTooltip.offsetWidth;
+    const tooltipHeight = dayTooltip.offsetHeight;
+    
+    // Позиционируем тултип ПРЯМО НАД ячейкой
+    let left = cellCenterX - (tooltipWidth / 2);
+    let top = cellTop - tooltipHeight - 8; // 8px отступ сверху
+    
+    // Проверяем границы экрана
+    
+    // Не выходит ли за левый край
+    if (left < 10) {
+        left = 10;
     }
     
-    dayTooltip.innerHTML = tooltipHTML;
-    dayTooltip.style.display = 'block';
+    // Не выходит ли за правый край
+    const rightEdge = left + tooltipWidth;
+    if (rightEdge > window.innerWidth - 10) {
+        left = window.innerWidth - tooltipWidth - 10;
+    }
     
-    // Позиционируем тултип
-    const rect = event.target.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    // Не выходит ли за верхний край
+    if (top < scrollTop + 10) {
+        // Если выходит за верх, показываем под ячейкой
+        top = cellTop + cellRect.height + 8;
+    }
     
-    dayTooltip.style.left = `${rect.left + window.scrollX}px`;
-    dayTooltip.style.top = `${rect.top + scrollTop - dayTooltip.offsetHeight - 10}px`;
+    // Применяем позиционирование
+    dayTooltip.style.left = `${left}px`;
+    dayTooltip.style.top = `${top}px`;
     
-    // Плавное появление
+    // Показываем тултип
+    dayTooltip.style.visibility = 'visible';
+    dayTooltip.style.opacity = '1';
+    dayTooltip.style.transform = 'translateY(0)';
+    
+    // Добавляем стрелочку внизу или вверху в зависимости от положения
+    updateTooltipArrow(top, cellTop);
+}
+
+// Обновить стрелочку тултипа
+function updateTooltipArrow(tooltipTop, cellTop) {
+    // Удаляем старую стрелочку
+    dayTooltip.style.setProperty('--arrow-display', 'none');
+    
+    // Ждем следующего кадра
     setTimeout(() => {
-        dayTooltip.style.opacity = '1';
-        dayTooltip.style.transform = 'translateY(0)';
+        const tooltipRect = dayTooltip.getBoundingClientRect();
+        const isAbove = tooltipTop < cellTop;
+        
+        if (isAbove) {
+            // Тултип над ячейкой - стрелочка внизу
+            dayTooltip.style.setProperty('--arrow-display', 'block');
+            dayTooltip.style.setProperty('--arrow-top', '100%');
+            dayTooltip.style.setProperty('--arrow-border', '6px solid transparent; border-top-color: #2d3748');
+        } else {
+            // Тултип под ячейкой - стрелочка вверху
+            dayTooltip.style.setProperty('--arrow-display', 'block');
+            dayTooltip.style.setProperty('--arrow-top', '0%');
+            dayTooltip.style.setProperty('--arrow-border', '6px solid transparent; border-bottom-color: #2d3748');
+            dayTooltip.style.setProperty('--arrow-transform', 'translateY(-100%)');
+        }
     }, 10);
 }
 
@@ -685,6 +882,104 @@ function hideDayTooltip() {
         dayTooltip.style.display = 'none';
     }, 200);
 }
+// Функция для правильного склонения слова "запись"
+function getRecordsWord(count) {
+    if (count % 10 === 1 && count % 100 !== 11) return 'запись';
+    if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) return 'записи';
+    return 'записей';
+}
+
+// Умное позиционирование тултипа (чтобы не выходил за экран)
+function positionTooltip(event, tooltip) {
+    const rect = event.target.getBoundingClientRect();
+    const tooltipWidth = tooltip.offsetWidth;
+    const tooltipHeight = tooltip.offsetHeight;
+    
+    let left = rect.left + window.scrollX;
+    let top = rect.top + window.scrollY - tooltipHeight - 10;
+    
+    // Проверяем, не выходит ли тултип за правый край
+    if (left + tooltipWidth > window.innerWidth) {
+        left = window.innerWidth - tooltipWidth - 10;
+    }
+    
+    // Проверяем, не выходит ли тултип за левый край
+    if (left < 10) {
+        left = 10;
+    }
+    
+    // Если тултип выходит за верхний край, показываем снизу
+    if (top < window.scrollY + 10) {
+        top = rect.bottom + window.scrollY + 10;
+    }
+    
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+}
+
+
+
+// Скрыть тултип с задержкой
+function hideDayTooltip() {
+    // Очищаем предыдущий таймер
+    if (tooltipHideTimer) {
+        clearTimeout(tooltipHideTimer);
+    }
+    
+    // Устанавливаем новую задержку (300ms)
+    tooltipHideTimer = setTimeout(() => {
+        dayTooltip.style.opacity = '0';
+        dayTooltip.style.transform = 'translateY(10px)';
+        
+        setTimeout(() => {
+            dayTooltip.style.display = 'none';
+            tooltipHideTimer = null;
+        }, 200);
+    }, 300);
+}
+
+
+function setupDayCellHover(dayCell) {
+    let hoverTimer = null;
+    let isTooltipVisible = false;
+    
+    dayCell.addEventListener('mouseenter', (e) => {
+        // Очищаем таймер скрытия
+        if (tooltipHideTimer) {
+            clearTimeout(tooltipHideTimer);
+            tooltipHideTimer = null;
+        }
+        
+        // Показываем тултип с небольшой задержкой (100ms)
+        hoverTimer = setTimeout(() => {
+            if (!isTooltipVisible) {
+                showDayTooltip(e, parseInt(dayCell.textContent), 
+                             dayCell.dataset, dayCell.dataset.date);
+                isTooltipVisible = true;
+            }
+        }, 100);
+    });
+    
+    dayCell.addEventListener('mouseleave', () => {
+        // Очищаем таймер показа
+        if (hoverTimer) {
+            clearTimeout(hoverTimer);
+            hoverTimer = null;
+        }
+        
+        // Скрываем тултип с задержкой
+        isTooltipVisible = false;
+        hideDayTooltip();
+    });
+    
+    // Также скрываем тултип при клике
+    dayCell.addEventListener('click', () => {
+        isTooltipVisible = false;
+        hideDayTooltip();
+    });
+}
+
+
 
 // Изменение месяца
 function changeMonth(delta) {

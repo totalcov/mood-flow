@@ -553,11 +553,12 @@ button {
 }
 
 /* Цвета для заполнения в зависимости от оценки */
-.distribution-fill[data-score="1"] { background-color: #fc8181; }
-.distribution-fill[data-score="2"] { background-color: #fbd38d; }
-.distribution-fill[data-score="3"] { background-color: #68d391; }
-.distribution-fill[data-score="4"] { background-color: #4fd1c5; }
-.distribution-fill[data-score="5"] { background-color: #5d5fef; }
+/* Цвета для заполнения в зависимости от оценки */
+.distribution-fill[data-score="1"] { background-color: #ef4444; }
+.distribution-fill[data-score="2"] { background-color: #f97316; }
+.distribution-fill[data-score="3"] { background-color: #eab308; }
+.distribution-fill[data-score="4"] { background-color: #22c55e; }
+.distribution-fill[data-score="5"] { background-color: #16a34a; }
 
 .distribution-percentage {
     text-align: right;
@@ -689,11 +690,12 @@ button {
 }
 
 /* Цвета для карточек в зависимости от оценки */
-.mood-card[data-score="1"] { border-left-color: #fc8181; }
-.mood-card[data-score="2"] { border-left-color: #fbd38d; }
-.mood-card[data-score="3"] { border-left-color: #68d391; }
-.mood-card[data-score="4"] { border-left-color: #4fd1c5; }
-.mood-card[data-score="5"] { border-left-color: #5d5fef; }
+/* Цвета для карточек в зависимости от оценки */
+.mood-card[data-score="1"] { border-left-color: #ef4444; }
+.mood-card[data-score="2"] { border-left-color: #f97316; }
+.mood-card[data-score="3"] { border-left-color: #eab308; }
+.mood-card[data-score="4"] { border-left-color: #22c55e; }
+.mood-card[data-score="5"] { border-left-color: #16a34a; }
 
 .mood-header {
     display: flex;
@@ -971,4 +973,73 @@ footer code {
         font-size: 1rem;
         padding: 4px 12px;
     }
+}
+
+/* Бейдж с количеством записей в дне */
+.day-count-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #4a5568;
+    font-size: 0.6rem;
+    font-weight: bold;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+
+
+
+/* Тултип с динамической стрелочкой */
+.day-tooltip {
+    position: absolute;
+    background: #2d3748;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    max-width: 250px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(10px);
+    /* Динамические свойства для стрелочки */
+    --arrow-display: none;
+    --arrow-top: 0%;
+    --arrow-border: none;
+    --arrow-transform: none;
+}
+
+/* Стрелочка тултипа */
+.day-tooltip::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: var(--arrow-top);
+    transform: translateX(-50%) var(--arrow-transform);
+    border: var(--arrow-border);
+    display: var(--arrow-display);
+}
+
+.tooltip-date {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #fff;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #4a5568;
+    padding-bottom: 4px;
+}
+
+.tooltip-mood {
+    color: #cbd5e0;
+    font-size: 0.8rem;
+    line-height: 1.4;
 }
