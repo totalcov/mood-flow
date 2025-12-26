@@ -1,43 +1,65 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from fastapi.staticfiles import StaticFiles
-
 from app.api.moods import router
+from app.database import create_tables
+import os
 
-tags_metadata = [
-    {
-        "name": "moods",
-        "description": "Операции с записями настроения",
-    }
-]
+# Автоматически создаем таблицы при запуске в production
+# На Render SQLite будет использовать /tmp для хранения БД
+if os.getenv("RENDER") or not os.getenv("DATABASE_URL", "").startswith("postgres"):
+    create_tables()
 
 app = FastAPI(
-    title="Mood Flow API",
-    description="API для отслеживания настроения",
+    title="Mood Flow",
+    description="Трекер настроений с календарем и статистикой",
     version="1.0.0",
-    openapi_tags=tags_metadata,
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    contact={
+        "name": "Mood Flow Team",
+        "url": "https://github.com/totalcov/mood-flow",
+    }
 )
 
-# Подключаем папку static для раздачи фронтенда
+# Раздача статических файлов
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# CORS настройки
+origins = [
+    "http://localhost:8000",
+    "http://localhost:3000",
+    "https://mood-flow.onrender.com",  # замените на ваш URL
+    "http://mood-flow.onrender.com",   # замените на ваш URL
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Подключаем роутер
 app.include_router(router)
 
-@app.get("/", tags=["default"])
+@app.get("/")
 def read_root():
-    return {"message": "Mood Flow API работает!"}
+    return {
+        "message": "Mood Flow API работает!",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "frontend": "/static/index.html",
+        "endpoints": {
+            "moods": "/moods/",
+            "statistics": "/moods/statistics/",
+            "calendar": "/moods/calendar/"
+        }
+    }
 
-@app.get("/health", tags=["default"])
+@app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "service": "Mood Flow API"}
+
+

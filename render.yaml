@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: mood-flow
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        generateValue: true
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: mood-data
+      mountPath: /data
+      sizeGB: 1
+
+  
