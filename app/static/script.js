@@ -1080,3 +1080,90 @@ window.addEventListener('load', () => {
     console.log('=== MOOD FLOW ЗАГРУЖЕН ===');
     testAllAPIs();
 });
+
+
+// ===========================================
+// ГЛОБАЛЬНАЯ ОБРАБОТКА ОШИБОК
+// ===========================================
+
+// Обработчик необработанных ошибок
+window.addEventListener('error', function(event) {
+    console.error('Глобальная ошибка:', event.error);
+    showMessage(`Произошла ошибка: ${event.error.message}`, 'error');
+});
+
+// Обработчик rejected promises
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('Необработанное отклонение промиса:', event.reason);
+    showMessage(`Ошибка при выполнении операции: ${event.reason.message || event.reason}`, 'error');
+});
+
+// Функция для безопасного выполнения запросов
+async function safeFetch(url, options = {}) {
+    try {
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+            let errorMessage = `Ошибка ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.detail || errorMessage;
+            } catch (e) {
+                // Не удалось распарсить JSON
+            }
+            throw new Error(errorMessage);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error(`Ошибка запроса к ${url}:`, error);
+        throw error;
+    }
+}
+
+// Обновим все fetch вызовы использовать safeFetch
+// Например, в loadMoods:
+async function loadMoods(filters = currentFilters) {
+    showLoading(true);
+    hideMessage();
+    
+    try {
+        const url = new URL(MOODS_API_URL);
+        if (filters.date_filter) {
+            url.searchParams.append('date_filter', filters.date_filter);
+        }
+        if (filters.mood_type) {
+            url.searchParams.append('mood_type', filters.mood_type);
+        }
+        
+        // Используем safeFetch вместо fetch
+        const moods = await safeFetch(url);
+        
+        showLoading(false);
+        
+        if (moods.length === 0) {
+            showEmptyState(true);
+            return;
+        }
+        
+        showEmptyState(false);
+        renderMoods(moods);
+        
+    } catch (error) {
+        console.error('Ошибка при загрузке настроений:', error);
+        showLoading(false);
+        showMessage(`Не удалось загрузить записи: ${error.message}`, 'error');
+    }
+}
+
+// Функция для подтверждения действий
+function confirmAction(message, callback) {
+    if (confirm(message)) {
+        callback();
+    }
+}
+
+// Пример использования при удалении (если добавим кнопки удаления в карточки)
+function setupDeleteConfirmation() {
+    // Можно добавить позже кнопки удаления в карточки
+}
