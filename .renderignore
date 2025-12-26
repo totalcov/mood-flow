@@ -1,0 +1,51 @@
+# Python кэш и байткод
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+.venv/
+venv.bak/
+env.bak/
+.venv.bak/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Database files (особенно важно!)
+*.db
+*.sqlite
+*.sqlite3
+mood_flow.db
+
+# IDE и редакторы
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Операционные системы
+.DS_Store
+Thumbs.db
+
+# Тестовые данные и логи
+test_data/
+logs/
+*.log
+
+# Временные файлы
+temp/
+tmp/
+
+# Миграции (если не используете в production)
+alembic/versions/*
+!alembic/versions/__init__.py
+
+# Статические файлы кэша (если есть)
+app/static/.cache/
