@@ -1,39 +1,87 @@
+# app/database.py - ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool  # для SQLite в production
 
-# Получаем URL БД из переменных окружения
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mood_flow.db")
+print("=" * 60)
+print("🔄 Инициализация базы данных Mood Flow...")
 
-# Настройка движка в зависимости от типа БД
-if DATABASE_URL.startswith("sqlite"):
-    # Для SQLite (локальная разработка)
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool  # важно для SQLite в production
-    )
-elif DATABASE_URL.startswith("postgres"):
-    # Для PostgreSQL (production на Render)
-    engine = create_engine(DATABASE_URL)
+# Определяем путь к базе данных
+if os.getenv("RENDER"):
+    # На Render используем /tmp (сохраняется между деплоями)
+    DB_PATH = "/tmp/mood_flow.db"
+    print(f"🌐 Production (Render): SQLite в {DB_PATH}")
+    print(f"⚠️  ВАЖНО: Данные сохраняются в /tmp между перезапусками")
 else:
-    # Для других БД
-    engine = create_engine(DATABASE_URL)
+    # Локальная разработка
+    DB_PATH = "./mood_flow.db"
+    print(f"💻 Development: SQLite в {DB_PATH}")
+
+DATABASE_URL = f"sqlite:///{DB_PATH}"
+print(f"📊 Database URL: {DATABASE_URL}")
+
+# Создаем движок SQLite
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    pool_pre_ping=True,
+    echo=False  # Поставьте True для отладки SQL запросов
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 def get_db():
+    """Зависимость для получения сессии БД"""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-# Функция для создания таблиц при запуске (если их нет)
-def create_tables():
-    Base.metadata.create_all(bind=engine)
+def test_database_connection():
+    """Проверка подключения к БД"""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+            print("✅ Подключение к БД успешно")
+            return True
+    except Exception as e:
+        print(f"❌ Ошибка подключения к БД: {e}")
+        return False
 
-    
+def create_tables():
+    """Создание таблиц при запуске"""
+    try:
+        print("📦 Создаем таблицы...")
+        Base.metadata.create_all(bind=engine)
+        
+        # Создаем таблицу для отслеживания миграций
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS _app_info (
+                    id INTEGER PRIMARY KEY,
+                    version TEXT NOT NULL,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            
+            # Записываем информацию о приложении
+            conn.execute(text("""
+                INSERT OR REPLACE INTO _app_info (id, version) 
+                VALUES (1, '1.0.0')
+            """))
+            conn.commit()
+        
+        print("✅ Таблицы созданы успешно")
+        return True
+    except Exception as e:
+        print(f"⚠️  Ошибка создания таблиц: {e}")
+        return False
+
+# Автоматическая проверка при импорте
+if __name__ == "__main__":
+    test_database_connection()
+
+print("=" * 60)

@@ -72,3 +72,33 @@ def get_mood_calendar(
     Каждый день содержит оценку, тип настроения и цвет.
     """
     return crud_mood.get_mood_calendar_data(db, year, month)
+
+@router.get("/test-db")
+def test_database_connection(db: Session = Depends(get_db)):
+    """Тестовый эндпоинт для проверки подключения к БД"""
+    from sqlalchemy import text
+    import os
+    
+    try:
+        # Простой запрос к БД
+        result = db.execute(text("SELECT version()"))
+        db_version = result.scalar()
+        
+        # Подсчет записей
+        from app.models.mood import MoodEntry
+        count = db.query(MoodEntry).count()
+        
+        return {
+            "status": "connected",
+            "database_type": "PostgreSQL" if os.getenv("DATABASE_URL") else "SQLite",
+            "database_version": db_version,
+            "total_records": count,
+            "has_database_url": bool(os.getenv("DATABASE_URL")),
+            "database_url_preview": os.getenv("DATABASE_URL", "Not set")[:30] + "..." if os.getenv("DATABASE_URL") else "Not set"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "database_url": os.getenv("DATABASE_URL", "Not set")
+        }
