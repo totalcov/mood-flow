@@ -1,30 +1,16 @@
-# main.py - С БЭКАПАМИ
-from fastapi import FastAPI, Request
+# main.py - PostgreSQL версия
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.moods import router
 from app.database import create_tables
-from app.backup import export_to_json, import_from_json
 import os
 
 print("=" * 60)
 print("🚀 Mood Flow API запускается...")
 print("=" * 60)
 
-print("🔍 Восстанавливаем БД из бэкапа...")
-from app.backup import import_from_backup, check_backup_status
-
-backup_status = check_backup_status()
-print(f"📊 Статус бэкапов: {backup_status}")
-
-if backup_status["db_backup_exists"]:
-    restored = import_from_backup()
-    if restored:
-        print("✅ БД восстановлена из постоянного бэкапа")
-else:
-    print("ℹ️  Постоянный бэкап не найден, создаем новую БД")
-
-# Создаем таблицы
+# Инициализация PostgreSQL
 print("📊 Инициализация базы данных...")
 create_tables()
 
@@ -60,137 +46,89 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Middleware для авто-бэкапа
-@app.middleware("http")
-async def backup_middleware(request: Request, call_next):
-    response = await call_next(request)
-    
-    # Делаем бэкап после успешных POST запросов
-    if request.method == "POST" and "/moods/" in str(request.url.path):
-        if response.status_code in [200, 201]:  # Только при успехе
-            try:
-                print("💾 Авто-бэкап после создания записи...")
-                backup_file = export_to_json()
-                if backup_file:
-                    print(f"✅ Бэкап сохранен: {backup_file.name}")
-            except Exception as e:
-                print(f"⚠️  Ошибка авто-бэкапа: {e}")
-    
-    return response
-
 # Подключаем роутер
 app.include_router(router)
 
 @app.get("/")
 def read_root():
     return {
-        "message": "Mood Flow API работает! 🎉",
+        "message": "Mood Flow API работает на PostgreSQL! 🎉",
         "version": "1.0.0",
-        "database": "SQLite с бэкапами",
+        "database": "PostgreSQL",
         "status": "operational",
         "docs": "/docs",
         "endpoints": {
             "moods": "/moods/",
             "statistics": "/moods/statistics/",
             "calendar": "/moods/calendar/",
-            "health": "/health",
-            "data-check": "/data-check",
-            "backup-create": "/moods/backup/create",
-            "backup-restore": "/moods/backup/restore"
+            "health": "/health"
         },
-        "note": "Авто-бэкап после каждой новой записи"
+        "note": "Данные сохраняются между деплоями"
     }
 
 @app.get("/health")
 def health_check():
+    from app.database import engine
     try:
-        from app.database import engine
         with engine.connect() as conn:
             conn.execute("SELECT 1")
         db_ok = True
-    except:
+    except Exception as e:
+        print(f"❌ Ошибка БД: {e}")
         db_ok = False
     
     return {
         "status": "healthy" if db_ok else "degraded",
-        "database": "connected" if db_ok else "disconnected"
+        "database": "PostgreSQL",
+        "connected": db_ok,
+        "service": "Mood Flow API"
     }
 
-@app.get("/data-check")
-def data_check():
-    """Проверка сохранения данных"""
-    import sqlite3
-    from pathlib import Path
-    import json
+@app.get("/db-info")
+def db_info():
+    """Информация о базе данных"""
+    import os
+    from app.database import engine
     
-    db_path = "/tmp/mood_flow.db" if os.getenv("RENDER") else "./mood_flow.db"
+    database_url = os.getenv("DATABASE_URL", "")
+    db_type = "PostgreSQL" if "postgres" in database_url else "SQLite"
     
     try:
-        if not Path(db_path).exists():
+        with engine.connect() as conn:
+            # Проверяем таблицы
+            from sqlalchemy import inspect
+            inspector = inspect(engine)
+            tables = inspector.get_table_names()
+            
+            # Считаем записи
+            from app.models.mood import MoodEntry
+            from sqlalchemy.orm import Session
+            from sqlalchemy import func
+            
+            with Session(engine) as session:
+                count = session.query(func.count(MoodEntry.id)).scalar() or 0
+            
             return {
-                "status": "no_database_file",
-                "message": "Файл базы данных не найден",
-                "path": db_path
+                "status": "connected",
+                "database_type": db_type,
+                "tables": tables,
+                "mood_entries_count": count,
+                "has_data": count > 0
             }
-        
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        # Проверяем таблицы
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        tables = [row[0] for row in cursor.fetchall()]
-        
-        # Считаем записи в mood_entries
-        mood_count = 0
-        if 'mood_entries' in tables:
-            cursor.execute("SELECT COUNT(*) FROM mood_entries")
-            mood_count = cursor.fetchone()[0]
-        
-        # Размер файла
-        file_size = Path(db_path).stat().st_size
-        
-        # Проверяем бэкапы
-        backup_dir = Path("./backups") if not os.getenv("RENDER") else Path("/opt/render/project/src/backups")
-        backups = list(backup_dir.glob("*.json")) if backup_dir.exists() else []
-        
-        conn.close()
-        
-        return {
-            "status": "ok",
-            "database_file": db_path,
-            "file_size_bytes": file_size,
-            "file_size_human": f"{file_size / 1024:.2f} KB",
-            "tables": tables,
-            "mood_entries_count": mood_count,
-            "data_persists": True if mood_count > 0 else False,
-            "backups": {
-                "count": len(backups),
-                "latest": backups[-1].name if backups else None,
-                "directory": str(backup_dir)
-            }
-        }
     except Exception as e:
         return {
             "status": "error",
             "error": str(e),
-            "database_file": db_path
+            "database_type": db_type
         }
 
 @app.on_event("startup")
 def on_startup():
     print("\n" + "=" * 60)
-    print("✅ Mood Flow API запущен и готов к работе!")
-    print("💾 Система бэкапов активна")
-    print("📊 Проверка данных: /data-check")
+    print("✅ Mood Flow API запущен!")
+    print("🐘 Используется PostgreSQL")
+    print("💾 Данные сохраняются между деплоями")
     print("=" * 60)
-    
-    # Создаем начальный бэкап
-    try:
-        backup_file = export_to_json()
-        if backup_file:
-            print(f"📁 Начальный бэкап создан: {backup_file.name}")
-    except Exception as e:
-        print(f"⚠️  Не удалось создать начальный бэкап: {e}")
 
 if __name__ == "__main__":
     import uvicorn
