@@ -11,16 +11,18 @@ print("=" * 60)
 print("🚀 Mood Flow API запускается...")
 print("=" * 60)
 
-# Восстанавливаем данные из бэкапа
-print("🔍 Проверяем бэкапы...")
-try:
-    restored = import_from_json()
+print("🔍 Восстанавливаем БД из бэкапа...")
+from app.backup import import_from_backup, check_backup_status
+
+backup_status = check_backup_status()
+print(f"📊 Статус бэкапов: {backup_status}")
+
+if backup_status["db_backup_exists"]:
+    restored = import_from_backup()
     if restored:
-        print("✅ Данные восстановлены из бэкапа")
-    else:
-        print("ℹ️  Бэкапы не найдены, создаем новую БД")
-except Exception as e:
-    print(f"⚠️  Ошибка восстановления: {e}")
+        print("✅ БД восстановлена из постоянного бэкапа")
+else:
+    print("ℹ️  Постоянный бэкап не найден, создаем новую БД")
 
 # Создаем таблицы
 print("📊 Инициализация базы данных...")
