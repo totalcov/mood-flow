@@ -1,16 +1,28 @@
-# main.py - ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ
-from fastapi import FastAPI
+# main.py - С БЭКАПАМИ
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.moods import router
 from app.database import create_tables, test_database_connection
+from app.backup import export_to_json, import_from_json
 import os
 
 print("=" * 60)
 print("🚀 Mood Flow API запускается...")
 print("=" * 60)
 
-# Всегда создаем таблицы для SQLite
+# Восстанавливаем данные из бэкапа
+print("🔍 Проверяем бэкапы...")
+try:
+    restored = import_from_json()
+    if restored:
+        print("✅ Данные восстановлены из бэкапа")
+    else:
+        print("ℹ️  Бэкапы не найдены, создаем новую БД")
+except Exception as e:
+    print(f"⚠️  Ошибка восстановления: {e}")
+
+# Создаем таблицы
 print("📊 Инициализация базы данных...")
 create_tables()
 
@@ -46,6 +58,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Middleware для авто-бэкапа
+@app.middleware("http")
+async def backup_middleware(request: Request, call_next):
+    response = await call_next(request)
+    
+    # Делаем бэкап после успешных POST запросов
+    if request.method == "POST" and "/moods/" in str(request.url.path):
+        if response.status_code in [200, 201]:  # Только при успехе
+            try:
+                print("💾 Авто-бэкап после создания записи...")
+                backup_file = export_to_json()
+                if backup_file:
+                    print(f"✅ Бэкап сохранен: {backup_file.name}")
+            except Exception as e:
+                print(f"⚠️  Ошибка авто-бэкапа: {e}")
+    
+    return response
+
 # Подключаем роутер
 app.include_router(router)
 
@@ -54,7 +84,7 @@ def read_root():
     return {
         "message": "Mood Flow API работает! 🎉",
         "version": "1.0.0",
-        "database": "SQLite",
+        "database": "SQLite с бэкапами",
         "status": "operational",
         "docs": "/docs",
         "endpoints": {
@@ -62,9 +92,11 @@ def read_root():
             "statistics": "/moods/statistics/",
             "calendar": "/moods/calendar/",
             "health": "/health",
-            "data-check": "/data-check"
+            "data-check": "/data-check",
+            "backup-create": "/moods/backup/create",
+            "backup-restore": "/moods/backup/restore"
         },
-        "note": "Используется SQLite с сохранением данных в /tmp на Render"
+        "note": "Авто-бэкап после каждой новой записи"
     }
 
 @app.get("/health")
@@ -74,7 +106,7 @@ def health_check():
         "status": "healthy" if db_ok else "degraded",
         "database": "connected" if db_ok else "disconnected",
         "service": "Mood Flow API",
-        "timestamp": "2024-01-09"
+        "backup_system": "active"
     }
 
 @app.get("/data-check")
@@ -82,6 +114,7 @@ def data_check():
     """Проверка сохранения данных"""
     import sqlite3
     from pathlib import Path
+    import json
     
     db_path = "/tmp/mood_flow.db" if os.getenv("RENDER") else "./mood_flow.db"
     
@@ -109,6 +142,10 @@ def data_check():
         # Размер файла
         file_size = Path(db_path).stat().st_size
         
+        # Проверяем бэкапы
+        backup_dir = Path("./backups") if not os.getenv("RENDER") else Path("/opt/render/project/src/backups")
+        backups = list(backup_dir.glob("*.json")) if backup_dir.exists() else []
+        
         conn.close()
         
         return {
@@ -118,7 +155,12 @@ def data_check():
             "file_size_human": f"{file_size / 1024:.2f} KB",
             "tables": tables,
             "mood_entries_count": mood_count,
-            "data_persists": True if mood_count > 0 else False
+            "data_persists": True if mood_count > 0 else False,
+            "backups": {
+                "count": len(backups),
+                "latest": backups[-1].name if backups else None,
+                "directory": str(backup_dir)
+            }
         }
     except Exception as e:
         return {
@@ -131,12 +173,20 @@ def data_check():
 def on_startup():
     print("\n" + "=" * 60)
     print("✅ Mood Flow API запущен и готов к работе!")
-    print(f"🌐 Документация: https://mood-flow.onrender.com/docs")
-    print(f"📊 Проверка данных: /data-check")
+    print("💾 Система бэкапов активна")
+    print("📊 Проверка данных: /data-check")
     print("=" * 60)
+    
+    # Создаем начальный бэкап
+    try:
+        backup_file = export_to_json()
+        if backup_file:
+            print(f"📁 Начальный бэкап создан: {backup_file.name}")
+    except Exception as e:
+        print(f"⚠️  Не удалось создать начальный бэкап: {e}")
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 10000))  # Render использует 10000
+    port = int(os.getenv("PORT", 10000))
     print(f"🌐 Запуск сервера на порту {port}...")
     uvicorn.run(app, host="0.0.0.0", port=port, reload=False)

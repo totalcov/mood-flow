@@ -102,3 +102,20 @@ def test_database_connection(db: Session = Depends(get_db)):
             "error": str(e),
             "database_url": os.getenv("DATABASE_URL", "Not set")
         }
+    
+
+@router.post("/backup/create")
+def create_backup(db: Session = Depends(get_db)):
+    """Создать бэкап вручную"""
+    from app.backup import export_to_json
+    backup_file = export_to_json()
+    if backup_file:
+        return {"status": "success", "backup_file": str(backup_file)}
+    return {"status": "error"}
+
+@router.post("/backup/restore")
+def restore_backup(db: Session = Depends(get_db)):
+    """Восстановить из последнего бэкапа"""
+    from app.backup import import_from_json
+    success = import_from_json()
+    return {"status": "success" if success else "error"}
