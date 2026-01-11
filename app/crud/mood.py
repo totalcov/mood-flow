@@ -1,3 +1,4 @@
+# app/crud/mood.py - БЕЗ date_only
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from typing import List, Optional
@@ -6,16 +7,11 @@ from app.models.mood import MoodEntry
 from app.schemas.mood import MoodCreate, MoodUpdate
 
 def create_mood_entry(db: Session, mood: MoodCreate) -> MoodEntry:
-    from datetime import datetime, timezone
-    
-    now_utc = datetime.now(timezone.utc)
-    
     db_mood = MoodEntry(
         mood_type=mood.mood_type,
         mood_score=mood.mood_score,
         notes=mood.notes,
-        date=now_utc,
-        date_only=now_utc.date().isoformat()  # Для календаря
+        date=datetime.now().date()
     )
     db.add(db_mood)
     db.commit()
@@ -50,9 +46,6 @@ def delete_mood_entry(db: Session, mood_id: int) -> bool:
     return True
 
 def get_mood_statistics(db: Session, start_date: date, end_date: date) -> dict:
-    """
-    Получить статистику настроений за период
-    """
     entries = db.query(MoodEntry).filter(
         MoodEntry.date.between(start_date, end_date)
     ).all()
@@ -62,7 +55,7 @@ def get_mood_statistics(db: Session, start_date: date, end_date: date) -> dict:
             "average_score": 0, 
             "total_entries": 0, 
             "mood_types": {},
-            "entries_data": []  # Добавляем для фронтенда
+            "entries_data": []
         }
     
     total_score = sum(entry.mood_score for entry in entries)
@@ -72,7 +65,6 @@ def get_mood_statistics(db: Session, start_date: date, end_date: date) -> dict:
     for entry in entries:
         mood_types[entry.mood_type] = mood_types.get(entry.mood_type, 0) + 1
     
-    # Подготовка данных для фронтенда
     entries_data = [
         {
             "id": entry.id,
@@ -87,44 +79,16 @@ def get_mood_statistics(db: Session, start_date: date, end_date: date) -> dict:
         "average_score": round(average_score, 2),
         "total_entries": len(entries),
         "mood_types": mood_types,
-        "entries_data": entries_data  # Отправляем на фронтенд
+        "entries_data": entries_data
     }
 
-
-# Добавим в конец файла (после get_mood_statistics)
 def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> dict:
-    """
-    Получить данные для календарной визуализации
-    
-    Возвращает:
-    {
-        "calendar": {
-            "2023-12-01": {
-                "average_score": 4.2,  # СРЕДНЯЯ оценка за день
-                "mood_types": ["happy", "calm"],  # Все типы настроений за день
-                "entries_count": 3,  # Количество записей за день
-                "entries": [  # Все записи за день
-                    {"score": 5, "type": "happy", "notes": "..."},
-                    {"score": 4, "type": "calm", "notes": "..."},
-                    {"score": 3, "type": "neutral", "notes": "..."}
-                ],
-                "color": "#4fd1c5",
-                "has_data": True
-            },
-            ...
-        },
-        "month": 12,
-        "year": 2023,
-        "month_name": "Декабрь"
-    }
-    """
-    from datetime import datetime, date, timezone, timedelta
+    from datetime import datetime, date
     from collections import defaultdict
     
-    # Если год и месяц не указаны, используем текущие
-    now_utc = datetime.now(timezone.utc)
-    target_year = year or now_utc.year
-    target_month = month or now_utc.month
+    now = datetime.now()
+    target_year = year or now.year
+    target_month = month or now.month
     
     start_date = date(target_year, target_month, 1)
     
@@ -133,13 +97,11 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
     else:
         end_date = date(target_year, target_month + 1, 1)
     
-    # Получаем все записи за месяц
     entries = db.query(MoodEntry).filter(
         MoodEntry.date >= start_date,
         MoodEntry.date < end_date
     ).order_by(MoodEntry.created_at).all()
     
-    # Группируем записи по дням
     daily_entries = defaultdict(list)
     for entry in entries:
         day_str = entry.date.isoformat()
@@ -150,7 +112,6 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
             "created_at": entry.created_at
         })
     
-    # Создаем полный календарь на месяц
     calendar_data = {}
     current_date = start_date
     
@@ -161,14 +122,11 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
             entries_list = daily_entries[day_str]
             entries_count = len(entries_list)
             
-            # Рассчитываем среднюю оценку
             total_score = sum(entry["score"] for entry in entries_list)
             average_score = round(total_score / entries_count, 1)
             
-            # Получаем все уникальные типы настроений
             mood_types = list(set(entry["type"] for entry in entries_list))
             
-            # Получаем цвет по средней оценке (округляем до целого)
             rounded_score = round(average_score)
             color = get_mood_color(rounded_score)
             
@@ -181,7 +139,6 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
                 "has_data": True
             }
         else:
-            # День без данных
             calendar_data[day_str] = {
                 "average_score": 0,
                 "mood_types": [],
@@ -203,26 +160,19 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
         "total_days": len(calendar_data)
     }
 
-
 def get_mood_color(score: int) -> str:
-    """Получить цвет в зависимости от оценки настроения"""
     colors = {
-        1: "#ef4444",  # ярко-красный - очень плохо
-        2: "#f97316",  # оранжевый - плохо
-        3: "#eab308",  # желтый/рыжий - нормально
-        4: "#62f28b",  # СИНИЙ - хорошо (был светло-зеленый)
-        5: "#048509",  # ИЗУМРУДНЫЙ - отлично (был темно-зеленый)
+        1: "#ef4444",
+        2: "#f97316",
+        3: "#eab308",
+        4: "#62f28b",
+        5: "#048509",
     }
     return colors.get(score, "#e2e8f0")
 
-
-
 def get_month_name_ru(month: int) -> str:
-    """Название месяца на русском"""
     months = [
         "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
         "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
     ]
     return months[month - 1] if 1 <= month <= 12 else "Неизвестный месяц"
-
-
