@@ -118,15 +118,14 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
         "month_name": "Декабрь"
     }
     """
-    from datetime import datetime, date
+    from datetime import datetime, date, timezone, timedelta
     from collections import defaultdict
     
     # Если год и месяц не указаны, используем текущие
-    now = datetime.now()
-    target_year = year or now.year
-    target_month = month or now.month
+    now_utc = datetime.now(timezone.utc)
+    target_year = year or now_utc.year
+    target_month = month or now_utc.month
     
-    # Определяем начало и конец месяца
     start_date = date(target_year, target_month, 1)
     
     if target_month == 12:
