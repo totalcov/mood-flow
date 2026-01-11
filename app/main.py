@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.moods import router
-from app.database import create_tables, test_database_connection
+from app.database import create_tables
 from app.backup import export_to_json, import_from_json
 import os
 
@@ -103,12 +103,17 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    db_ok = test_database_connection()
+    try:
+        from app.database import engine
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
+        db_ok = True
+    except:
+        db_ok = False
+    
     return {
         "status": "healthy" if db_ok else "degraded",
-        "database": "connected" if db_ok else "disconnected",
-        "service": "Mood Flow API",
-        "backup_system": "active"
+        "database": "connected" if db_ok else "disconnected"
     }
 
 @app.get("/data-check")
