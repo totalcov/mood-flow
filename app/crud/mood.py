@@ -6,11 +6,16 @@ from app.models.mood import MoodEntry
 from app.schemas.mood import MoodCreate, MoodUpdate
 
 def create_mood_entry(db: Session, mood: MoodCreate) -> MoodEntry:
+    from datetime import datetime, timezone
+    
+    now_utc = datetime.now(timezone.utc)
+    
     db_mood = MoodEntry(
         mood_type=mood.mood_type,
         mood_score=mood.mood_score,
         notes=mood.notes,
-        date=datetime.now().date()
+        date=now_utc,
+        date_only=now_utc.date().isoformat()  # Для календаря
     )
     db.add(db_mood)
     db.commit()
