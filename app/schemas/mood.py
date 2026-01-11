@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from datetime import datetime
 from typing import Optional
 
@@ -17,8 +17,16 @@ class MoodUpdate(BaseModel):
 
 class MoodResponse(MoodBase):
     id: int
-    date: datetime
-    created_at: datetime
+    date: str  # Изменили на str
+    created_at: Optional[str] = None  # Optional[str] вместо datetime
+    
+    @validator('date', 'created_at', pre=True)
+    def convert_to_string(cls, value):
+        if value is None:
+            return None
+        if hasattr(value, 'isoformat'):
+            return value.isoformat()
+        return str(value)
     
     class Config:
         from_attributes = True
