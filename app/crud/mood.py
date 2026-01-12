@@ -9,14 +9,15 @@ from app.schemas.mood import MoodCreate, MoodUpdate
 def create_mood_entry(db: Session, mood: MoodCreate) -> MoodEntry:
     from datetime import datetime
     
-    # Явно указываем текущую дату
-    current_date = datetime.now().date()
+    # Полная дата-время
+    now = datetime.now()
     
     db_mood = MoodEntry(
         mood_type=mood.mood_type,
         mood_score=mood.mood_score,
         notes=mood.notes,
-        date=current_date  # Явно передаем дату
+        date=now,  # ← ПЕРЕДАЕМ datetime, а не date()
+        created_at=now
     )
     db.add(db_mood)
     db.commit()
@@ -86,10 +87,11 @@ def get_mood_statistics(db: Session, start_date: date, end_date: date) -> dict:
         "mood_types": mood_types,
         "entries_data": entries_data
     }
-
+from datetime import timedelta
 def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> dict:
     from datetime import datetime, date
     from collections import defaultdict
+    from sqlalchemy import func
     
     now = datetime.now()
     target_year = year or now.year
@@ -102,14 +104,16 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
     else:
         end_date = date(target_year, target_month + 1, 1)
     
+    # Используем func.date() для извлечения даты из DateTime
     entries = db.query(MoodEntry).filter(
-        MoodEntry.date >= start_date,
-        MoodEntry.date < end_date
+        func.date(MoodEntry.date) >= start_date,
+        func.date(MoodEntry.date) < end_date
     ).order_by(MoodEntry.created_at).all()
     
     daily_entries = defaultdict(list)
     for entry in entries:
-        day_str = entry.date.isoformat()
+        # Извлекаем только дату из DateTime
+        day_str = entry.date.date().isoformat()
         daily_entries[day_str].append({
             "score": entry.mood_score,
             "type": entry.mood_type,
@@ -135,11 +139,21 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
             rounded_score = round(average_score)
             color = get_mood_color(rounded_score)
             
+            # Добавляем 3 часа к created_at для отображения
+            fixed_entries = []
+            for entry in entries_list:
+                fixed_entry = entry.copy()
+                if fixed_entry["created_at"]:
+                    # Добавляем 3 часа к UTC времени
+                    fixed_time = fixed_entry["created_at"] + timedelta(hours=3)
+                    fixed_entry["created_at"] = fixed_time.isoformat()
+                fixed_entries.append(fixed_entry)
+            
             calendar_data[day_str] = {
                 "average_score": average_score,
                 "mood_types": mood_types,
                 "entries_count": entries_count,
-                "entries": entries_list,
+                "entries": fixed_entries,
                 "color": color,
                 "has_data": True
             }

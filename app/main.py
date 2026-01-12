@@ -135,3 +135,43 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 10000))
     print(f"🌐 Запуск сервера на порту {port}...")
     uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
+
+@app.get("/check-db-structure")
+def check_db_structure():
+    """Проверить структуру таблицы в PostgreSQL"""
+    from app.database import engine
+    from sqlalchemy import text
+    
+    with engine.connect() as conn:
+        # Проверяем структуру таблицы
+        result = conn.execute(text("""
+            SELECT column_name, data_type, is_nullable, column_default
+            FROM information_schema.columns 
+            WHERE table_name = 'mood_entries'
+            ORDER BY ordinal_position
+        """))
+        
+        columns = []
+        for row in result:
+            columns.append({
+                "column": row[0],
+                "type": row[1],
+                "nullable": row[2],
+                "default": row[3]
+            })
+        
+        # Проверяем несколько записей
+        entries = conn.execute(text("SELECT id, date, created_at FROM mood_entries LIMIT 5"))
+        
+        sample_data = []
+        for row in entries:
+            sample_data.append({
+                "id": row[0],
+                "date": str(row[1]),
+                "created_at": str(row[2])
+            })
+        
+        return {
+            "table_structure": columns,
+            "sample_data": sample_data
+        }

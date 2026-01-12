@@ -1,6 +1,5 @@
 # app/models/mood.py
-from sqlalchemy import Column, Integer, String, Date, DateTime, func
-from sqlalchemy.sql import expression
+from sqlalchemy import Column, Integer, String, DateTime, func
 from app.database import Base
 
 class MoodEntry(Base):
@@ -10,7 +9,9 @@ class MoodEntry(Base):
     mood_type = Column(String, nullable=False)
     mood_score = Column(Integer, nullable=False)
     notes = Column(String(500), nullable=True)
-    date = Column(Date, nullable=False, server_default=func.current_date())  # ← ИСПРАВЛЕНО
+    
+    # ИЗМЕНИЛ: DateTime вместо Date, храним полную дату-время
+    date = Column(DateTime, nullable=False, server_default=func.now())
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     
     def __repr__(self):
