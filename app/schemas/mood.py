@@ -24,4 +24,4 @@ class MoodResponse(MoodBase):
     
     id: int
     date: datetime
-    created_at: datetime
+    created_at: Optional[datetime] = None
