@@ -7,11 +7,16 @@ from app.models.mood import MoodEntry
 from app.schemas.mood import MoodCreate, MoodUpdate
 
 def create_mood_entry(db: Session, mood: MoodCreate) -> MoodEntry:
+    from datetime import datetime
+    
+    # Явно указываем текущую дату
+    current_date = datetime.now().date()
+    
     db_mood = MoodEntry(
         mood_type=mood.mood_type,
         mood_score=mood.mood_score,
         notes=mood.notes,
-        date=datetime.now().date()
+        date=current_date  # Явно передаем дату
     )
     db.add(db_mood)
     db.commit()
