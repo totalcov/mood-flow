@@ -7,17 +7,19 @@ from app.models.mood import MoodEntry
 from app.schemas.mood import MoodCreate, MoodUpdate
 
 def create_mood_entry(db: Session, mood: MoodCreate) -> MoodEntry:
-    from datetime import datetime
+    from datetime import datetime, timezone, timedelta
     
-    # Полная дата-время
-    now = datetime.now()
+    # UTC время
+    now_utc = datetime.now(timezone.utc)
+    # Добавляем 3 часа
+    now_local = now_utc + timedelta(hours=3)
     
     db_mood = MoodEntry(
         mood_type=mood.mood_type,
         mood_score=mood.mood_score,
         notes=mood.notes,
-        date=now,  # ← ПЕРЕДАЕМ datetime, а не date()
-        created_at=now
+        date=now_local,  # ← Уже с поправкой
+        created_at=now_local
     )
     db.add(db_mood)
     db.commit()
@@ -115,12 +117,7 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
     daily_entries = defaultdict(list)
     for entry in entries:
         # Получаем дату как строку (обрабатываем и Date и DateTime)
-        if isinstance(entry.date, datetime):
-            # Если datetime, берем только дату
-            day_str = entry.date.date().isoformat()
-        else:
-            # Если уже date
-            day_str = entry.date.isoformat()
+        day_str = entry.date.isoformat()
         
         daily_entries[day_str].append({
             "score": entry.mood_score,
