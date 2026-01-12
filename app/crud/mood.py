@@ -88,10 +88,11 @@ def get_mood_statistics(db: Session, start_date: date, end_date: date) -> dict:
         "entries_data": entries_data
     }
 from datetime import timedelta
+
+
 def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> dict:
     from datetime import datetime, date
     from collections import defaultdict
-    from sqlalchemy import func
     
     now = datetime.now()
     target_year = year or now.year
@@ -104,16 +105,23 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
     else:
         end_date = date(target_year, target_month + 1, 1)
     
-    # Используем func.date() для извлечения даты из DateTime
+    # Получаем все записи за месяц
     entries = db.query(MoodEntry).filter(
-        func.date(MoodEntry.date) >= start_date,
-        func.date(MoodEntry.date) < end_date
+        MoodEntry.date >= start_date,
+        MoodEntry.date < end_date
     ).order_by(MoodEntry.created_at).all()
     
+    # Группируем по дням
     daily_entries = defaultdict(list)
     for entry in entries:
-        # Извлекаем только дату из DateTime
-        day_str = entry.date.date().isoformat()
+        # Получаем дату как строку (обрабатываем и Date и DateTime)
+        if isinstance(entry.date, datetime):
+            # Если datetime, берем только дату
+            day_str = entry.date.date().isoformat()
+        else:
+            # Если уже date
+            day_str = entry.date.isoformat()
+        
         daily_entries[day_str].append({
             "score": entry.mood_score,
             "type": entry.mood_type,
@@ -121,6 +129,7 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
             "created_at": entry.created_at
         })
     
+    # Создаем календарь на весь месяц
     calendar_data = {}
     current_date = start_date
     
@@ -131,22 +140,25 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
             entries_list = daily_entries[day_str]
             entries_count = len(entries_list)
             
+            # Средняя оценка
             total_score = sum(entry["score"] for entry in entries_list)
-            average_score = round(total_score / entries_count, 1)
+            average_score = round(total_score / entries_count, 1) if entries_count > 0 else 0
             
+            # Типы настроений
             mood_types = list(set(entry["type"] for entry in entries_list))
             
-            rounded_score = round(average_score)
+            # Цвет по оценке
+            rounded_score = round(average_score) if average_score > 0 else 0
             color = get_mood_color(rounded_score)
             
-            # Добавляем 3 часа к created_at для отображения
+            # Фиксируем время (добавляем 3 часа если нужно)
             fixed_entries = []
-            for entry in entries_list:
-                fixed_entry = entry.copy()
+            for entry_data in entries_list:
+                fixed_entry = entry_data.copy()
                 if fixed_entry["created_at"]:
-                    # Добавляем 3 часа к UTC времени
-                    fixed_time = fixed_entry["created_at"] + timedelta(hours=3)
-                    fixed_entry["created_at"] = fixed_time.isoformat()
+                    # Если время в UTC, можно добавить 3 часа
+                    # fixed_entry["created_at"] = entry_data["created_at"] + timedelta(hours=3)
+                    pass
                 fixed_entries.append(fixed_entry)
             
             calendar_data[day_str] = {
@@ -158,6 +170,7 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
                 "has_data": True
             }
         else:
+            # День без записей
             calendar_data[day_str] = {
                 "average_score": 0,
                 "mood_types": [],
@@ -167,6 +180,7 @@ def get_mood_calendar_data(db: Session, year: int = None, month: int = None) -> 
                 "has_data": False
             }
         
+        # Следующий день
         current_date = date.fromordinal(current_date.toordinal() + 1)
     
     return {
